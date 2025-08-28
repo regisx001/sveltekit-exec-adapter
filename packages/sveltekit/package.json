@@ -1,0 +1,35 @@
+{
+  "name": "@jesterkit/exe-sveltekit",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "bun build.ts"
+  },
+  "module": "dist/index.js",
+  "version": "0.1.1",
+  "description": "EXE is an adapter for SvelteKit to build a standalone executable with full stack features such as SSR, API routes, server hooks....",
+  "author": "Hugo Duprez",
+  "license": "MIT",
+  "keywords": [
+    "sveltekit",
+    "adapter",
+    "executable",
+    "compile",
+    "binary"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Hugo-Dz/exe"
+  },
+  "files": [
+    "dist"
+  ],
+  "devDependencies": {
+    "@sveltejs/kit": "^2.22.2",
+    "@types/bun": "latest",
+    "@types/node": "^24.0.10"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "type": "module"
+}

@@ -1,0 +1,37 @@
+{
+  "name": "@jesterkit/exe-tanstack",
+  "module": "dist/index.ts",
+  "version": "0.1.0",
+  "description": "EXE is an tool for TanStack to build a standalone executable with full stack features such as SSR, API routes, server hooks....",
+  "author": "Hugo Duprez",
+  "license": "MIT",
+  "keywords": [
+    "tanstack",
+    "react",
+    "executable",
+    "compile",
+    "binary"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Hugo-Dz/exe"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "bin": {
+    "exe-tanstack": "./dist/index.js"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@types/minimist": "^1.2.5",
+    "esbuild": "^0.25.8",
+    "minimist": "^1.2.8"
+  }
+}
