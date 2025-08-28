@@ -42,7 +42,7 @@ const adapter = (options?: AdapterOptions): Adapter => {
 			builder.log.success("[JesterKit] SvelteKit build complete");
 
 			// Step 3: Copy the server wrapper
-			const path = join(__dirname, "server");
+			const path = join(import.meta.dirname, "server");
 			builder.copy(path, join(SVELTEKIT_DIR, "temp-server"));
 			builder.log.success("[JesterKit] Server copied");
 
