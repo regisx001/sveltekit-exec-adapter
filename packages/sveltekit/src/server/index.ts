@@ -68,15 +68,24 @@ async function instantiateServer(manifest: SSRManifest) {
 }
 
 async function getFile(pathname: string) {
+	let decodedPathname: string;
+	try {
+		decodedPathname = decodeURIComponent(pathname);
+		// Prevent path traversal
+		if (decodedPathname.includes("../") || decodedPathname.includes("..\\")) return null;
+	} catch (error) {
+		decodedPathname = pathname;
+	}
+
 	// Search in embedded assetMap
-	if (assetMap.has(pathname)) return file(assetMap.get(pathname));
+	if (assetMap.has(decodedPathname)) return file(assetMap.get(decodedPathname));
 
 	// Search on disk
 	const binaryDir = path.dirname(execPath);
 	const staticBuildDirs = ["client", "prerendered"];
 
 	for (const dir of staticBuildDirs) {
-		const externalFile = file(path.join(binaryDir, dir, pathname));
+		const externalFile = file(path.join(binaryDir, dir, decodedPathname));
 		if (await externalFile.exists()) return externalFile;
 	}
 }
