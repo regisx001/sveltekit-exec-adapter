@@ -1,0 +1,135 @@
+name: Publish Package & Create Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  publish-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: packages/sveltekit
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🛠️ Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: 📦 Install dependencies
+        run: bun install
+
+      - name: 🔨 Build package
+        run: bun run build
+
+      - name: 🏷️ Extract version from tag
+        if: startsWith(github.ref, 'refs/tags/')
+        id: extract_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: � Update package version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          jq '.version = "${{ steps.extract_version.outputs.VERSION }}"' package.json > package.json.tmp
+          mv package.json.tmp package.json
+          echo "Updated version to ${{ steps.extract_version.outputs.VERSION }}"
+
+      - name: 📋 Generate changelog
+        if: startsWith(github.ref, 'refs/tags/')
+        id: changelog
+        run: |
+          # Get the previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+
+          if [ -z "$PREV_TAG" ]; then
+            echo "CHANGELOG=🎉 Initial release" >> $GITHUB_OUTPUT
+          else
+            echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
+            git log --pretty=format:"- %s" $PREV_TAG..HEAD --grep="^feat\|^fix\|^docs\|^style\|^refactor\|^test\|^chore" || git log --pretty=format:"- %s" $PREV_TAG..HEAD | head -10
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+
+      - name: � Setup NPM authentication
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+          echo "registry=https://registry.npmjs.org/" >> ~/.npmrc
+
+      - name: 🚀 Publish to NPM
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "📦 Publishing as beta version..."
+            npm publish --tag beta
+          else
+            echo "📦 Publishing as latest version..."
+            npm publish
+          fi
+
+      - name: 🎉 Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          body: |
+            ## SvelteKit Exec Adapter ${{ github.ref_name }}
+
+            ### 📥 Install:
+            ```bash
+            npm install @jesterkit/exe-sveltekit@${{ steps.extract_version.outputs.VERSION }}
+            ```
+
+            ### 🔗 NPM Package:
+            https://www.npmjs.com/package/@jesterkit/exe-sveltekit
+
+            ### 📋 What's Changed:
+            ${{ steps.changelog.outputs.CHANGELOG }}
+          draft: false
+          prerelease: false
+
+      - name: ✅ Success notification
+        if: success()
+        run: |
+          echo "🎉 Success!"
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "📦 NPM: https://www.npmjs.com/package/@jesterkit/exe-sveltekit"
+            echo "🚀 Release: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}"
+          else
+            echo "📦 NPM Beta: https://www.npmjs.com/package/@jesterkit/exe-sveltekit"
+          fi
+          mv package.json.tmp package.json
+          echo "Updated version to ${{ steps.extract_version.outputs.VERSION }}"
+
+      - name: 🔐 Setup NPM authentication
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+          echo "registry=https://registry.npmjs.org/" >> ~/.npmrc
+
+      - name: 🚀 Publish to NPM
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "📦 Publishing as beta version..."
+            npm publish --tag beta
+          else
+            echo "📦 Publishing as latest version..."
+            npm publish
+          fi
+
+      - name: 🎉 Success notification
+        if: success()
+        run: |
+          echo "✅ Package published successfully!"
+          echo "📦 Package: $(jq -r '.name' package.json)"
+          echo "🏷️ Version: $(jq -r '.version' package.json)"
+          echo "🔗 NPM: https://www.npmjs.com/package/$(jq -r '.name' package.json)"

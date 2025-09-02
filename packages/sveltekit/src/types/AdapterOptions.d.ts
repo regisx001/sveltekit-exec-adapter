@@ -18,6 +18,4 @@ export declare type AdapterOptions = {
   target?: Target;
   /** Volume mount point for the binary (default no volume mount). Can be used for persistent storage, usually /data. */
   volume?: string;
-  /** Custom port for the server (default: 3000) */
-  port?: number;
 };

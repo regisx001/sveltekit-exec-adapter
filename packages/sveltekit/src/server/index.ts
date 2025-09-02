@@ -124,3 +124,47 @@ const server = Bun.serve({
 });
 
 console.log(`Listening on http://localhost:${server.port}`);
+
+// Graceful shutdown implementation
+let isShuttingDown = false;
+
+function gracefulShutdown(signal: string) {
+  if (isShuttingDown) {
+    console.log("⚠️  Shutdown already in progress...");
+    return;
+  }
+
+  isShuttingDown = true;
+  console.log(`🔄 Received ${signal}, initiating graceful shutdown...`);
+
+  // Stop accepting new connections
+  server.stop();
+  console.log("🚫 Server stopped accepting new connections");
+
+  // Set a timeout to force exit if graceful shutdown takes too long
+  const forceExitTimeout = setTimeout(() => {
+    console.log("⚠️  Graceful shutdown timeout reached, forcing exit");
+    process.exit(1);
+  }, 10000); // 10 second timeout
+
+  // Clear the timeout since we're exiting gracefully
+  clearTimeout(forceExitTimeout);
+  console.log("✅ Graceful shutdown completed");
+  process.exit(0);
+}
+
+// Listen for termination signals
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+process.on("SIGHUP", () => gracefulShutdown("SIGHUP"));
+
+// Handle uncaught exceptions gracefully
+process.on("uncaughtException", (error) => {
+  console.error("💥 Uncaught Exception:", error);
+  gracefulShutdown("UNCAUGHT_EXCEPTION");
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("💥 Unhandled Rejection at:", promise, "reason:", reason);
+  gracefulShutdown("UNHANDLED_REJECTION");
+});
