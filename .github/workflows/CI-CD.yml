@@ -6,6 +6,7 @@ on:
     branches: [master, main]
     paths:
       - "packages/sveltekit/src/**"
+      - "packages/sveltekit/build.ts"
       - "static/**"
       - "packages/sveltekit/package.json"
 
