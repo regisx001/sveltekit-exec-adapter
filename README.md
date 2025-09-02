@@ -1,77 +1,94 @@
-# EXE
+# SvelteKit Exec Adapter
 
-A build tool to distribute your full-stack web app as a **single executable binary** with zero runtime dependencies.
+> ⚠️ **Experimental Project**: This adapter is currently under active development and testing. Use with caution in production environments.
 
-Unlike static builds that strip away server capabilities, EXE preserves **all server-side features** of your full stack framework: SSR, API endpoints, server middleware, server-side authentication, etc.
+A SvelteKit adapter that builds your full-stack web application as a **single executable binary** with zero runtime dependencies.
 
-<img src="./static/wormhole.png" alt="EXE Diagram" style="width: 100%;">
+Unlike static builds that strip away server capabilities, this adapter preserves **all server-side features** of SvelteKit: SSR, API endpoints, server middleware, server-side authentication, and more.
 
-## Why ?
+## Why Use This Adapter?
 
 **Traditional standalone software approaches lose functionality:**
 
-- SPA builds + Rust / Go → Lose frontend framework's server features (SSR, API routes, etc.).
-- Desktop apps → Can't be deployed to the web.
-- Docker → Need to install Docker and spin up a container locally.
+- SPA builds + Rust/Go → Lose SvelteKit's server features (SSR, API routes, etc.)
+- Desktop apps → Can't be deployed to the web
+- Docker → Requires Docker installation and container management
 
-**With EXE:**
+**With this SvelteKit adapter:**
 
-- ✅ Full-stack framework capabilities preserved, build as you would for the web.
-- ✅ Single binary, no runtime dependencies.
-- ✅ Cross-platform executable.
-- ✅ Runs anywhere: locally, or on a small cloud machine.
+- ✅ Full SvelteKit capabilities preserved
+- ✅ Single binary, no runtime dependencies
+- ✅ Cross-platform executable
+- ✅ Runs anywhere: locally or on cloud machines
 
-## Perfect for
+## Perfect For
 
-- **Open-source tools** users can run without Docker/Node.
-- **Commercial software** sold as one-time purchase for self-hosting vs SaaS.
-- **Privacy-focused apps** prioritizing local data ownership.
-- **Demos** for users to try before buying.
+- **Open-source tools** users can run without Docker/Node.js
+- **Commercial software** sold as one-time purchase for self-hosting
+- **Privacy-focused apps** prioritizing local data ownership
+- **Demos** for users to try before purchasing
+- **Portable applications** that need to run without installation
 
-Examples: AI chat apps, project management tools, image editors, web analytics...
+Examples: AI chat apps, project management tools, content management systems, web analytics dashboards...
 
-![EXE SvelteKit](./static/example_exe_sveltekit.webp)
+## Installation
 
-<p align="center"><em>A full-stack SvelteKit web app tilemap engine compiled with EXE. Running locally.</em></p>
-
-<br>
-
-## Quick Start with SvelteKit
-
-> [Nuxt](./packages/nuxt) and [TanStack](./packages/tanstack) are also supported but experimental.
-
-Requires [Bun](https://bun.com/) installed on your machine to build the executable (not to run).
+Requires [Bun](https://bun.com/) installed on your machine to build the executable.
 
 ```bash
 npm install @jesterkit/exe-sveltekit
 ```
+
+## Usage
 
 ```js
 // svelte.config.js
 import adapter from "@jesterkit/exe-sveltekit";
 
 export default {
-	kit: {
-		adapter: adapter({
-			binaryName: "my-app",
-		}),
-	},
+  kit: {
+    adapter: adapter({
+      binaryName: "my-app",
+      // Additional options...
+    }),
+  },
 };
 ```
 
+Build your application:
+
 ```bash
 npm run build
+```
+
+Run the generated executable:
+
+```bash
 ./dist/my-app
 ```
 
-Your app runs at `http://localhost:3000` with **full server capabilities of SvelteKit**. Check the README of the [SvelteKit adapter](./packages/sveltekit/README.md) for more details.
+Your SvelteKit app will run at `http://localhost:3000` with **full server capabilities**.
 
-🎁 **Bonus**: If you select the `linux-x64` target, a Dockerfile is automatically generated so you can self-host your software in one command using the Fly.io [CLI](https://fly.io/docs/flyctl/):
+## Configuration Options
+
+The adapter accepts various configuration options. Check the [detailed documentation](./packages/sveltekit/README.md) for complete configuration details.
+
+## Deployment
+
+🎁 **Bonus**: When targeting `linux-x64`, a Dockerfile is automatically generated, enabling easy deployment with services like Fly.io:
 
 ```bash
 fly launch
 ```
 
+## Contributing
+
+This project is under active development. Contributions, bug reports, and feature requests are welcome!
+
 ## License
 
-MIT License [Hugo Duprez](https://www.hugoduprez.com/)
+MIT License - see [LICENSE](./LICENSE) file for details.
+
+## Credits
+
+This project is based on the original work by [Hugo Duprez](https://www.hugoduprez.com/). Special thanks for the foundational concepts and initial implementation.
