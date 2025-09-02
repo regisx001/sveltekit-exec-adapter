@@ -101,24 +101,16 @@ const server = Bun.serve({
   port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
   hostname: "0.0.0.0",
   async fetch(req: Request, bunServer: Bun.Server) {
-    // Track request for graceful shutdown
-    const finishRequest = trackRequest(req);
+    // Handle static assets
+    const staticResponse = await staticServer.respond(req);
+    if (staticResponse) return staticResponse;
 
-    try {
-      // Handle static assets
-      const staticResponse = await staticServer.respond(req);
-      if (staticResponse) return staticResponse;
-
-      // Handle other routes (SSR, API endpoints, etc.)
-      return await svelteKitServer.respond(req, {
-        getClientAddress() {
-          return bunServer.requestIP(req)?.address || "127.0.0.1";
-        },
-      });
-    } finally {
-      // Always finish tracking the request
-      finishRequest();
-    }
+    // Handle other routes (SSR, API endpoints, etc.)
+    return await svelteKitServer.respond(req, {
+      getClientAddress() {
+        return bunServer.requestIP(req)?.address || "127.0.0.1";
+      },
+    });
   },
   error(e: Error) {
     return Response.json(
@@ -131,110 +123,4 @@ const server = Bun.serve({
   },
 });
 
-console.log(`Listening on http://localhost:${server.port}`);
-
-// Graceful shutdown implementation
-let shutdownTimeoutId: Timer | null = null;
-let idleTimeoutId: Timer | null = null;
-let activeRequests = 0;
-const shutdownTimeout = 10; // seconds
-const idleTimeout = 30; // seconds (optional idle shutdown)
-
-/**
- * Graceful shutdown handler similar to Node.js adapter
- * @param reason - The reason for shutdown ('SIGINT' | 'SIGTERM' | 'SIGHUP' | 'IDLE')
- */
-function gracefulShutdown(reason: string) {
-  if (shutdownTimeoutId) {
-    console.log("⚠️  Shutdown already in progress...");
-    return;
-  }
-
-  console.log(`🔄 Received ${reason}, initiating graceful shutdown...`);
-
-  // Stop accepting new connections
-  server.stop();
-  console.log("🚫 Server stopped accepting new connections");
-
-  // Set a timeout to force exit if graceful shutdown takes too long
-  shutdownTimeoutId = setTimeout(() => {
-    console.log("⚠️  Graceful shutdown timeout reached, forcing exit");
-    process.exit(1);
-  }, shutdownTimeout * 1000);
-
-  // Check if we can shutdown immediately (no active requests)
-  checkForGracefulExit(reason);
-}
-
-/**
- * Check if we can exit gracefully (no active requests)
- */
-function checkForGracefulExit(reason: string) {
-  if (activeRequests === 0) {
-    console.log("✅ All requests completed, shutting down gracefully");
-
-    if (shutdownTimeoutId) {
-      clearTimeout(shutdownTimeoutId);
-      shutdownTimeoutId = null;
-    }
-    if (idleTimeoutId) {
-      clearTimeout(idleTimeoutId);
-      idleTimeoutId = null;
-    }
-
-    console.log(`🏁 Shutdown completed (reason: ${reason})`);
-    process.exit(0);
-  } else {
-    console.log(
-      `🔄 Waiting for ${activeRequests} active request(s) to complete...`
-    );
-    // Check again in 100ms
-    setTimeout(() => checkForGracefulExit(reason), 100);
-  }
-}
-
-/**
- * Track request lifecycle for graceful shutdown
- */
-function trackRequest(req: Request): () => void {
-  activeRequests++;
-
-  // Clear idle timeout when we receive a request
-  if (idleTimeoutId) {
-    clearTimeout(idleTimeoutId);
-    idleTimeoutId = null;
-  }
-
-  // Return cleanup function
-  return () => {
-    activeRequests--;
-
-    // If we're shutting down and this was the last request, proceed with shutdown
-    if (shutdownTimeoutId && activeRequests === 0) {
-      checkForGracefulExit("REQUEST_COMPLETE");
-    }
-
-    // Optional: Set idle timeout if no requests are active
-    if (activeRequests === 0 && !shutdownTimeoutId && idleTimeout > 0) {
-      idleTimeoutId = setTimeout(() => {
-        gracefulShutdown("IDLE");
-      }, idleTimeout * 1000);
-    }
-  };
-}
-
-// Listen for termination signals
-process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
-process.on("SIGINT", () => gracefulShutdown("SIGINT"));
-process.on("SIGHUP", () => gracefulShutdown("SIGHUP"));
-
-// Handle uncaught exceptions gracefully
-process.on("uncaughtException", (error) => {
-  console.error("💥 Uncaught Exception:", error);
-  gracefulShutdown("UNCAUGHT_EXCEPTION");
-});
-
-process.on("unhandledRejection", (reason, promise) => {
-  console.error("💥 Unhandled Rejection at:", promise, "reason:", reason);
-  gracefulShutdown("UNHANDLED_REJECTION");
-});
+console.log(`💿 Listening on http://localhost:${server.port}`);
