@@ -87,11 +87,11 @@ jobs:
 
             ### 📥 Install:
             ```bash
-            npm install @jesterkit/exe-sveltekit@${{ steps.extract_version.outputs.VERSION }}
+            npm install @regisx001/sveltekit-exec-adapter@${{ steps.extract_version.outputs.VERSION }}
             ```
 
             ### 🔗 NPM Package:
-            https://www.npmjs.com/package/@jesterkit/exe-sveltekit
+            https://www.npmjs.com/package/@regisx001/sveltekit-exec-adapter
 
             ### 📋 What's Changed:
             ${{ steps.changelog.outputs.CHANGELOG }}
@@ -103,10 +103,10 @@ jobs:
         run: |
           echo "🎉 Success!"
           if [ "${{ github.event_name }}" = "push" ]; then
-            echo "📦 NPM: https://www.npmjs.com/package/@jesterkit/exe-sveltekit"
+            echo "📦 NPM: https://www.npmjs.com/package/@regisx001/sveltekit-exec-adapter"
             echo "🚀 Release: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}"
           else
-            echo "📦 NPM Beta: https://www.npmjs.com/package/@jesterkit/exe-sveltekit"
+            echo "📦 NPM Beta: https://www.npmjs.com/package/@regisx001/sveltekit-exec-adapter"
           fi
           mv package.json.tmp package.json
           echo "Updated version to ${{ steps.extract_version.outputs.VERSION }}"

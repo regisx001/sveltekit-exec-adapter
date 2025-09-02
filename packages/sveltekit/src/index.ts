@@ -15,7 +15,7 @@ import { compileApplication } from "./utils/compile";
 import { generateDockerfile } from "./utils/docker";
 
 /**
- * Create the @sveltejs/exec-adapter
+ * Create the @regisx001/sveltekit-exec-adapter
  * @param {AdapterOptions} [options] - Adapter options
  * @returns {Adapter} Returns an adapter object
  */
@@ -44,12 +44,14 @@ const adapter = (options?: AdapterOptions): Adapter => {
       // Remove the /_app directory in /server. As duplicated from the client directory. To be confirmed.
       builder.rimraf(join(SVELTEKIT_DIR, "server", "_app"));
 
-      builder.log.success("[@sveltejs/exec-adapter] SvelteKit build complete");
+      builder.log.success(
+        "[@regisx001/sveltekit-exec-adapter] SvelteKit build complete"
+      );
 
       // Step 3: Copy the server wrapper
       const path = join(import.meta.dirname, "server");
       builder.copy(path, join(SVELTEKIT_DIR, "temp-server"));
-      builder.log.success("[@sveltejs/exec-adapter] Server copied");
+      builder.log.success("[@regisx001/sveltekit-exec-adapter] Server copied");
 
       // Step 4: Generate manifest file with IIFE wrapper
       const manifest = builder.generateManifest({ relativePath: "./server" });
@@ -59,7 +61,9 @@ const adapter = (options?: AdapterOptions): Adapter => {
         manifestModule,
         "utf-8"
       );
-      builder.log.success("[@sveltejs/exec-adapter] Manifest generated");
+      builder.log.success(
+        "[@regisx001/sveltekit-exec-adapter] Manifest generated"
+      );
 
       // Step 5: Generate assets imports
       if (adapterOptions.embedStatic) {
@@ -87,7 +91,9 @@ const adapter = (options?: AdapterOptions): Adapter => {
           "export const assetMap = new Map([]);"
         );
       }
-      builder.log.success("[@sveltejs/exec-adapter] Assets generated");
+      builder.log.success(
+        "[@regisx001/sveltekit-exec-adapter] Assets generated"
+      );
 
       // Step 6: Compile the app
       const { binaryPath, sizeInMb } = await compileApplication(
@@ -95,7 +101,7 @@ const adapter = (options?: AdapterOptions): Adapter => {
         adapterOptions
       );
       builder.log.success(
-        `[@sveltejs/exec-adapter] Application compiled (${sizeInMb} MB)`
+        `[@regisx001/sveltekit-exec-adapter] Application compiled (${sizeInMb} MB)`
       );
 
       // Step 7: Generate Dockerfile
@@ -105,7 +111,7 @@ const adapter = (options?: AdapterOptions): Adapter => {
       }
 
       builder.log.success(
-        `[@sveltejs/exec-adapter] Start the application with: ./${binaryPath}`
+        `[@regisx001/sveltekit-exec-adapter] Start the application with: ./${binaryPath}`
       );
     },
     supports: {

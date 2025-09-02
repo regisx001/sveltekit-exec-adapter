@@ -1,7 +1,7 @@
 // Types
 import type { AdapterOptions } from "../types/AdapterOptions";
 
-export const ADAPTER_NAME = "@sveltejs/exec-adapter";
+export const ADAPTER_NAME = "@regisx001/sveltekit-exec-adapter";
 export const SVELTEKIT_DIR = `.svelte-kit/${ADAPTER_NAME}`;
 export const TARGETS_MAP: Record<
   NonNullable<AdapterOptions["target"]>,

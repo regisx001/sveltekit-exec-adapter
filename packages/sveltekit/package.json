@@ -1,5 +1,5 @@
 {
-  "name": "@sveltejs/exec-adapter",
+  "name": "@regisx001/sveltekit-exec-adapter",
   "main": "dist/index.js",
   "scripts": {
     "build": "bun build.ts"
