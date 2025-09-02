@@ -36,3 +36,9 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # IDE tools
 .cursor
 CLAUDE.md
+
+
+examples
+build-app.sh
+.claude
+.DS_Store

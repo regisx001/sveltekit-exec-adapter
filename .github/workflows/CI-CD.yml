@@ -3,11 +3,18 @@ name: Exec adapter CI
 on:
   workflow_dispatch:
   push:
-    branches: [master]
+    branches: [master, main]
+    paths:
+      - "packages/sveltekit/src/**"
+      - "static/**"
+      - "packages/sveltekit/package.json"
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/sveltekit
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -18,9 +25,7 @@ jobs:
           bun-version: latest
 
       - name: 📦 Install dependencies
-        run: |
-          cd packages/sveltekit
-          bun install
+        run: bun install
 
       - name: ✅ Run tests
         run: bun run build
