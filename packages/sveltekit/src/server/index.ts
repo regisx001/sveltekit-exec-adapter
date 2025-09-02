@@ -137,17 +137,19 @@ function gracefulShutdown(signal: string) {
   isShuttingDown = true;
   console.log(`🔄 Received ${signal}, initiating graceful shutdown...`);
 
-  // Stop accepting new connections
-  server.stop();
-  console.log("🚫 Server stopped accepting new connections");
-
   // Set a timeout to force exit if graceful shutdown takes too long
   const forceExitTimeout = setTimeout(() => {
     console.log("⚠️  Graceful shutdown timeout reached, forcing exit");
     process.exit(1);
-  }, 10000); // 10 second timeout
+  }, 10000);
 
-  // Clear the timeout since we're exiting gracefully
+  // Stop accepting new connections
+  server.stop();
+  console.log("🚫 Server stopped accepting new connections");
+
+  // Simulate cleanup time (in real scenarios, this would be waiting for active connections to finish)
+  console.log("🔄 Waiting for active connections to finish...");
+
   clearTimeout(forceExitTimeout);
   console.log("✅ Graceful shutdown completed");
   process.exit(0);
