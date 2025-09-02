@@ -1,0 +1,26 @@
+name: Exec adapter CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🛠️ Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: 📦 Install dependencies
+        run: |
+          cd packages/sveltekit
+          bun install
+
+      - name: ✅ Run tests
+        run: bun run build
