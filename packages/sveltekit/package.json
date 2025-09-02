@@ -1,11 +1,11 @@
 {
-  "name": "@regisx001/sveltekit-exec-adapter",
+  "name": "sveltekit-exec-adapter",
   "main": "dist/index.js",
   "scripts": {
     "build": "bun build.ts"
   },
   "module": "dist/index.js",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "EXE is an adapter for SvelteKit to build a standalone executable with full stack features such as SSR, API routes, server hooks....",
   "author": "Ezzoubair ZARQI",
   "license": "MIT",
