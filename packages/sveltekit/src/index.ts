@@ -158,9 +158,7 @@ const adapter = (options?: AdapterOptions): Adapter => {
         target: adapterOptions.target,
       });
 
-      builder.log.success(
-        `[sveltekit-exec-adapter] Start the application with: ./${binaryPath}`
-      );
+      builder.log.info(`🚀 Start the application with: ./${binaryPath}`);
     },
     supports: {
       read: () => true,

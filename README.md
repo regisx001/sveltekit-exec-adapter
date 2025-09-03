@@ -36,14 +36,59 @@ Examples: AI chat apps, project management tools, content management systems, we
 Requires [Bun](https://bun.com/) installed on your machine to build the executable.
 
 ```bash
-npm install @jesterkit/exe-sveltekit
+npm install sveltekit-exec-adapter
 ```
+
+### Installing Bun
+
+Bun is required as a build dependency to compile your SvelteKit application into an executable binary.
+
+#### For Linux and macOS:
+
+1. Open your terminal.
+2. Execute the following command to download and run the installation script:
+
+```bash
+curl -fsSL https://bun.sh/install | bash
+```
+
+3. After the installation, you may need to add Bun to your system's PATH. The installer usually prompts you with instructions on how to do this, which often involves adding a line to your shell's configuration file (e.g., `~/.bashrc`, `~/.zshrc`).
+
+4. Verify the installation by checking the Bun version:
+
+```bash
+bun --version
+```
+
+#### For Windows:
+
+1. Bun officially supports Windows, and the recommended way to install it is via PowerShell.
+2. Open PowerShell as an administrator.
+3. Execute the following command:
+
+```powershell
+powershell -c "irm bun.sh/install.ps1|iex"
+```
+
+4. Alternatively, you can use scoop if you have it installed:
+
+```powershell
+scoop install bun
+```
+
+5. Verify the installation by checking the Bun version:
+
+```bash
+bun --version
+```
+
+> **Note**: For specific version installations, refer to the [official Bun documentation](https://bun.sh/docs/installation) as the commands may vary slightly depending on the desired version.
 
 ## Usage
 
 ```js
 // svelte.config.js
-import adapter from "@jesterkit/exe-sveltekit";
+import adapter from "sveltekit-exec-adapter";
 
 export default {
   kit: {

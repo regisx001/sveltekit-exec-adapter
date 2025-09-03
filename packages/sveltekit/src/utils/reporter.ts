@@ -85,8 +85,9 @@ export class BuildReporter {
     const durationStr = this.formatDuration(duration);
     const detailsStr = details ? ` (${details})` : "";
 
-    this.builder.log.success(
-      `${progressBar} ✅ ${this.getStepDescription(
+    // Use info instead of success to avoid double checkmarks
+    this.builder.log.info(
+      `${progressBar} ${this.getStepDescription(
         stepName
       )} completed in ${durationStr}${detailsStr}`
     );
@@ -95,9 +96,9 @@ export class BuildReporter {
   completeBuild(stats: BuildStats): void {
     const totalTime = Date.now() - this.metrics.startTime;
 
-    this.builder.log.success("");
+    this.builder.log.info("");
     this.builder.log.success("🎉 Build completed successfully!");
-    this.builder.log.success("");
+    this.builder.log.info("");
     this.logBuildStats(stats, totalTime);
     this.logStepTimings();
   }
@@ -165,21 +166,21 @@ export class BuildReporter {
   }
 
   private logBuildStats(stats: BuildStats, totalTime: number): void {
-    this.builder.log.success("📈 Build Statistics:");
-    this.builder.log.success(
+    this.builder.log.info("📈 Build Statistics:");
+    this.builder.log.info(
       `   • Total build time: ${this.formatDuration(totalTime)}`
     );
-    this.builder.log.success(`   • Binary size: ${stats.binarySize}`);
-    this.builder.log.success(`   • Assets processed: ${stats.assetCount}`);
-    this.builder.log.success(
+    this.builder.log.info(`   • Binary size: ${stats.binarySize}`);
+    this.builder.log.info(`   • Assets processed: ${stats.assetCount}`);
+    this.builder.log.info(
       `   • Static embedding: ${
         stats.embedStatic ? "✅ Enabled" : "❌ Disabled"
       }`
     );
     if (stats.target) {
-      this.builder.log.success(`   • Target platform: ${stats.target}`);
+      this.builder.log.info(`   • Target platform: ${stats.target}`);
     }
-    this.builder.log.success("");
+    this.builder.log.info("");
   }
 
   private logStepTimings(): void {
