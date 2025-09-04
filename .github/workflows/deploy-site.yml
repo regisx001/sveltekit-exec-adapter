@@ -44,6 +44,13 @@ jobs:
         # Add any other public environment variables you need
         run: bun run build
 
+      - name: Debug - List build output
+        run: |
+          echo "Current directory contents:"
+          ls -la
+          echo "Looking for build directories:"
+          find . -type d -name "*build*" -o -name "*dist*" -o -name "*out*" 2>/dev/null || true
+
       - name: Upload Artifacts
         uses: actions/upload-pages-artifact@v3
         with:
