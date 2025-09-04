@@ -64,7 +64,12 @@ export async function compileApplication(
   ].join(" ");
   execSync(`bun ${compileArgs}`, { stdio: "inherit" });
 
-  const binaryPath = join(options.out, options.binaryName);
+  // On Windows, Bun automatically adds .exe extension
+  const actualBinaryName =
+    process.platform === "win32"
+      ? `${options.binaryName}.exe`
+      : options.binaryName;
+  const binaryPath = join(options.out, actualBinaryName);
   const { size: sizeInBytes } = await stat(binaryPath);
   const sizeInMb = (sizeInBytes / (1024 * 1024)).toFixed(1);
 

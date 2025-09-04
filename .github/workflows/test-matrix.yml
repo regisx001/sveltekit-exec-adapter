@@ -21,8 +21,8 @@ jobs:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: 🥖 Setup Bun
-        uses: oven-sh/setup-bun@v1
+      - name: 🛠️ Install Bun
+        uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
@@ -37,3 +37,30 @@ jobs:
           cd test
           bun install
           bun run build
+
+      - name: 🧪 Test executable (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          cd test
+          chmod +x dist/test-example
+          ./dist/test-example &
+          sleep 5
+          curl -f http://localhost:3000 || exit 1
+          pkill -f test-example
+        shell: bash
+
+      - name: 🧪 Test executable (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          cd test
+          Start-Process -FilePath "dist\test-example.exe" -PassThru
+          Start-Sleep -Seconds 5
+          try {
+            Invoke-WebRequest -Uri "http://localhost:3000" -UseBasicParsing
+          } catch {
+            Write-Error "Failed to connect to executable"
+            exit 1
+          } finally {
+            Get-Process | Where-Object {$_.ProcessName -like "*test-example*"} | Stop-Process -Force
+          }
+        shell: powershell
