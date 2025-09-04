@@ -31,12 +31,14 @@ jobs:
           cd packages/sveltekit
           bun install
           bun run build
+          bun link
 
       - name: 🏗️ Build test project
         run: |
           cd test
           bun install
           bun run build
+          bun link sveltekit-exec-adapter
 
       - name: 🧪 Test executable (Unix)
         if: runner.os != 'Windows'
