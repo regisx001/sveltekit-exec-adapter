@@ -40,6 +40,6 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"sveltekit-exec-adapter": "^0.3.1"
+		"sveltekit-exec-adapter": "^0.3.2"
 	}
 }
