@@ -1,0 +1,171 @@
+name: Test Matrix Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+    paths:
+      - "test/**"
+      - "packages/sveltekit/src/**"
+      - "packages/sveltekit/build.ts"
+      - "packages/sveltekit/package.json"
+  pull_request:
+    branches: [main, master]
+    paths:
+      - "test/**"
+      - "packages/sveltekit/src/**"
+      - "packages/sveltekit/build.ts"
+      - "packages/sveltekit/package.json"
+
+jobs:
+  test-matrix:
+    name: Test on ${{ matrix.os }} with Node ${{ matrix.node-version }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: [18, 20, 22]
+
+    defaults:
+      run:
+        working-directory: test
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+          cache-dependency-path: test/package.json
+
+      - name: �️ Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: �📦 Install dependencies
+        run: npm install
+
+      - name: 🏗️ Build adapter package
+        run: |
+          cd ../packages/sveltekit
+          bun install
+          bun run build
+        shell: bash
+
+      - name: 🔄 Link local adapter
+        run: npm link ../packages/sveltekit
+        shell: bash
+
+      - name: 🧪 Run lint
+        run: npm run lint
+
+      - name: 🧪 Run type check
+        run: npm run check
+
+      - name: 🏗️ Build test project
+        run: npm run build
+
+      - name: 🧪 Run unit tests
+        run: npm run test:unit -- --run
+
+      - name: 🎭 Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: 🧪 Run E2E tests
+        run: npm run test:e2e
+
+      - name: 📊 Upload test results
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-results-${{ matrix.os }}-node${{ matrix.node-version }}
+          path: |
+            test/test-results/
+            test/playwright-report/
+          retention-days: 7
+
+  build-executables:
+    name: Build executables on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    needs: test-matrix
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    defaults:
+      run:
+        working-directory: test
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: test/package.json
+
+      - name: �️ Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: �📦 Install dependencies
+        run: npm install
+
+      - name: 🏗️ Build adapter package
+        run: |
+          cd ../packages/sveltekit
+          bun install
+          bun run build
+        shell: bash
+
+      - name: 🔄 Link local adapter
+        run: npm link ../packages/sveltekit
+        shell: bash
+
+      - name: 🏗️ Build executable
+        run: npm run build
+
+      - name: 🧪 Test executable (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          chmod +x build/test-example
+          ./build/test-example &
+          sleep 5
+          curl -f http://localhost:3000 || exit 1
+          pkill -f test-example
+        shell: bash
+
+      - name: 🧪 Test executable (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          Start-Process -FilePath "build\test-example.exe" -PassThru
+          Start-Sleep -Seconds 5
+          try {
+            Invoke-WebRequest -Uri "http://localhost:3000" -UseBasicParsing
+          } catch {
+            Write-Error "Failed to connect to executable"
+            exit 1
+          } finally {
+            Get-Process | Where-Object {$_.ProcessName -like "*test-example*"} | Stop-Process -Force
+          }
+        shell: powershell
+
+      - name: 📦 Upload executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-executable-${{ matrix.os }}
+          path: |
+            test/build/test-example*
+          retention-days: 7
