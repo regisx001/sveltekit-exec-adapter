@@ -2,6 +2,20 @@
 import { join } from "path";
 import { writeFile } from "fs/promises";
 
+// Colors for terminal output
+const colors = {
+  reset: "\x1b[0m",
+  bright: "\x1b[1m",
+  dim: "\x1b[2m",
+  red: "\x1b[31m",
+  green: "\x1b[32m",
+  yellow: "\x1b[33m",
+  blue: "\x1b[34m",
+  magenta: "\x1b[35m",
+  cyan: "\x1b[36m",
+  white: "\x1b[37m",
+};
+
 // Types
 import type { AdapterOptions } from "./types/AdapterOptions";
 import type { Adapter } from "@sveltejs/kit";
@@ -90,7 +104,7 @@ const adapter = (options?: AdapterOptions): Adapter => {
         // Warn about large assets
         if (assetAnalysis.largeAssets.length > 0) {
           builder.log.warn(
-            `⚠️  Found ${assetAnalysis.largeAssets.length} large assets (>1MB)`
+            `${colors.yellow}${colors.bright}[WARNING]${colors.reset} ${colors.yellow}Found ${assetAnalysis.largeAssets.length} large assets (>1MB)${colors.reset}`
           );
           for (const asset of assetAnalysis.largeAssets.slice(0, 3)) {
             const sizeMB = (asset.size / (1024 * 1024)).toFixed(1);
@@ -158,7 +172,9 @@ const adapter = (options?: AdapterOptions): Adapter => {
         target: adapterOptions.target,
       });
 
-      builder.log.info(`🚀 Start the application with: ./${binaryPath}`);
+      builder.log.info(
+        `${colors.green}${colors.bright}[INFO]${colors.reset} ${colors.green}Start the application with: ${colors.bright}./${binaryPath}${colors.reset}`
+      );
     },
     supports: {
       read: () => true,

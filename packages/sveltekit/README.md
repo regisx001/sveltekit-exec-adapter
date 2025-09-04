@@ -96,8 +96,8 @@ export default {
 
 When using environment variables in your SvelteKit application:
 
-- ✅ **Use**: `$env/dynamic/private` for server-side environment variables
-- ❌ **Avoid**: `$env/static/private` (these are resolved at build time)
+- **Use**: `$env/dynamic/private` for server-side environment variables
+- **Avoid**: `$env/static/private` (these are resolved at build time)
 
 This ensures your executable can read environment variables from the runtime environment where it's deployed.
 

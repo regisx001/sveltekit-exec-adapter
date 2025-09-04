@@ -3,6 +3,15 @@ import { file } from "bun";
 import path from "node:path";
 import { execPath } from "process";
 
+// Colors for terminal output
+const colors = {
+  reset: "\x1b[0m",
+  bright: "\x1b[1m",
+  green: "\x1b[32m",
+  blue: "\x1b[34m",
+  cyan: "\x1b[36m",
+};
+
 // @ts-ignore
 import { assetMap } from "./assets.generated.ts";
 
@@ -123,4 +132,6 @@ const server = Bun.serve({
   },
 });
 
-console.log(`💿 Listening on http://localhost:${server.port}`);
+console.log(
+  `${colors.green}${colors.bright}[SERVER]${colors.reset} ${colors.cyan}Listening on ${colors.bright}http://localhost:${server.port}${colors.reset}`
+);

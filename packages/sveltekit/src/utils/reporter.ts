@@ -1,6 +1,26 @@
 // Types
 import type { Builder } from "@sveltejs/kit";
 
+// Colors for terminal output
+const colors = {
+  reset: "\x1b[0m",
+  bright: "\x1b[1m",
+  dim: "\x1b[2m",
+  red: "\x1b[31m",
+  green: "\x1b[32m",
+  yellow: "\x1b[33m",
+  blue: "\x1b[34m",
+  magenta: "\x1b[35m",
+  cyan: "\x1b[36m",
+  white: "\x1b[37m",
+  bgRed: "\x1b[41m",
+  bgGreen: "\x1b[42m",
+  bgYellow: "\x1b[43m",
+  bgBlue: "\x1b[44m",
+  bgMagenta: "\x1b[45m",
+  bgCyan: "\x1b[46m",
+};
+
 interface BuildMetrics {
   startTime: number;
   stepTimes: Map<string, number>;
@@ -52,14 +72,18 @@ export class BuildReporter {
   }
 
   startBuild(): void {
-    this.builder.log.info("🚀 Starting SvelteKit Exec Adapter build...");
+    this.builder.log.info(
+      `${colors.magenta}${colors.bright}[BUILD]${colors.reset} ${colors.magenta}Starting SvelteKit Exec Adapter build...${colors.reset}`
+    );
     this.logBuildInfo();
   }
 
   startStep(stepName: string): void {
     const step = this.steps.find((s) => s.name === stepName);
     if (!step) {
-      this.builder.log.warn(`⚠️  Unknown step: ${stepName}`);
+      this.builder.log.warn(
+        `${colors.yellow}${colors.bright}[WARNING]${colors.reset} ${colors.yellow}Unknown step: ${stepName}${colors.reset}`
+      );
       return;
     }
 
@@ -69,7 +93,9 @@ export class BuildReporter {
     const progress = this.calculateProgress();
     const progressBar = this.createProgressBar(progress);
 
-    this.builder.log.info(`${progressBar} ${step.description}...`);
+    this.builder.log.info(
+      `${colors.blue}${progressBar}${colors.reset} ${colors.cyan}${step.description}...${colors.reset}`
+    );
   }
 
   completeStep(stepName: string, details?: string): void {
@@ -87,9 +113,11 @@ export class BuildReporter {
 
     // Use info instead of success to avoid double checkmarks
     this.builder.log.info(
-      `${progressBar} ${this.getStepDescription(
-        stepName
-      )} completed in ${durationStr}${detailsStr}`
+      `${colors.green}${progressBar}${colors.reset} ${
+        colors.green
+      }${this.getStepDescription(stepName)} completed in ${
+        colors.bright
+      }${durationStr}${colors.reset}${colors.green}${detailsStr}${colors.reset}`
     );
   }
 
@@ -97,7 +125,9 @@ export class BuildReporter {
     const totalTime = Date.now() - this.metrics.startTime;
 
     this.builder.log.info("");
-    this.builder.log.success("🎉 Build completed successfully!");
+    this.builder.log.success(
+      `${colors.green}${colors.bright}[SUCCESS]${colors.reset} ${colors.green}Build completed successfully!${colors.reset}`
+    );
     this.builder.log.info("");
     this.logBuildStats(stats, totalTime);
     this.logStepTimings();
@@ -129,8 +159,10 @@ export class BuildReporter {
     const filled = Math.round((percentage / 100) * width);
     const empty = width - filled;
 
-    const bar = "█".repeat(filled) + "░".repeat(empty);
-    return `[${bar}] ${percentage}%`;
+    const filledBar = `${colors.green}█${colors.reset}`.repeat(filled);
+    const emptyBar = `${colors.dim}░${colors.reset}`.repeat(empty);
+    const bar = filledBar + emptyBar;
+    return `[${bar}] ${colors.bright}${percentage}%${colors.reset}`;
   }
 
   private getStepDescription(stepName: string): string {
@@ -157,34 +189,54 @@ export class BuildReporter {
   }
 
   private logBuildInfo(): void {
-    this.builder.log.info("📊 Build Configuration:");
-    this.builder.log.info(`   • Total steps: ${this.metrics.totalSteps}`);
     this.builder.log.info(
-      `   • Started at: ${new Date().toLocaleTimeString()}`
+      `${colors.blue}${colors.bright}[INFO]${colors.reset} ${colors.blue}Build Configuration:${colors.reset}`
+    );
+    this.builder.log.info(
+      `   ${colors.dim}•${colors.reset} Total steps: ${colors.bright}${this.metrics.totalSteps}${colors.reset}`
+    );
+    this.builder.log.info(
+      `   ${colors.dim}•${colors.reset} Started at: ${
+        colors.bright
+      }${new Date().toLocaleTimeString()}${colors.reset}`
     );
     this.builder.log.info("");
   }
 
   private logBuildStats(stats: BuildStats, totalTime: number): void {
-    this.builder.log.info("📈 Build Statistics:");
     this.builder.log.info(
-      `   • Total build time: ${this.formatDuration(totalTime)}`
+      `${colors.cyan}${colors.bright}[STATS]${colors.reset} ${colors.cyan}Build Statistics:${colors.reset}`
     );
-    this.builder.log.info(`   • Binary size: ${stats.binarySize}`);
-    this.builder.log.info(`   • Assets processed: ${stats.assetCount}`);
     this.builder.log.info(
-      `   • Static embedding: ${
-        stats.embedStatic ? "✅ Enabled" : "❌ Disabled"
+      `   ${colors.dim}•${colors.reset} Total build time: ${
+        colors.bright
+      }${this.formatDuration(totalTime)}${colors.reset}`
+    );
+    this.builder.log.info(
+      `   ${colors.dim}•${colors.reset} Binary size: ${colors.bright}${stats.binarySize}${colors.reset}`
+    );
+    this.builder.log.info(
+      `   ${colors.dim}•${colors.reset} Assets processed: ${colors.bright}${stats.assetCount}${colors.reset}`
+    );
+    this.builder.log.info(
+      `   ${colors.dim}•${colors.reset} Static embedding: ${
+        stats.embedStatic
+          ? `${colors.green}Enabled${colors.reset}`
+          : `${colors.red}Disabled${colors.reset}`
       }`
     );
     if (stats.target) {
-      this.builder.log.info(`   • Target platform: ${stats.target}`);
+      this.builder.log.info(
+        `   ${colors.dim}•${colors.reset} Target platform: ${colors.bright}${stats.target}${colors.reset}`
+      );
     }
     this.builder.log.info("");
   }
 
   private logStepTimings(): void {
-    this.builder.log.info("⏱️  Step Timings:");
+    this.builder.log.info(
+      `${colors.magenta}${colors.bright}[TIMINGS]${colors.reset} ${colors.magenta}Step Timings:${colors.reset}`
+    );
 
     for (const step of this.steps) {
       const startTime = this.metrics.stepTimes.get(step.name);
@@ -197,9 +249,11 @@ export class BuildReporter {
         ).toFixed(1);
 
         this.builder.log.info(
-          `   • ${step.description}: ${this.formatDuration(
-            duration
-          )} (${percentage}%)`
+          `   ${colors.dim}•${colors.reset} ${colors.white}${
+            step.description
+          }:${colors.reset} ${colors.bright}${this.formatDuration(duration)}${
+            colors.reset
+          } ${colors.dim}(${percentage}%)${colors.reset}`
         );
       }
     }
@@ -221,14 +275,18 @@ export class BuildReporter {
 
     if (largeAssets.length > 0) {
       this.builder.log.warn("");
-      this.builder.log.warn("⚠️  Large assets detected:");
+      this.builder.log.warn(
+        `${colors.yellow}${colors.bright}[WARNING]${colors.reset} ${colors.yellow}Large assets detected:${colors.reset}`
+      );
       for (const asset of largeAssets) {
         this.builder.log.warn(
-          `   • ${asset.path}: ${this.formatSize(asset.size)}`
+          `   ${colors.dim}•${colors.reset} ${colors.yellow}${asset.path}:${
+            colors.reset
+          } ${colors.bright}${this.formatSize(asset.size)}${colors.reset}`
         );
       }
       this.builder.log.warn(
-        "   Consider excluding large assets from binary embedding."
+        `   ${colors.dim}Consider excluding large assets from binary embedding.${colors.reset}`
       );
       this.builder.log.warn("");
     }
@@ -260,9 +318,13 @@ export class BuildReporter {
 
     if (suggestions.length > 0) {
       this.builder.log.info("");
-      this.builder.log.info("💡 Optimization Suggestions:");
+      this.builder.log.info(
+        `${colors.cyan}${colors.bright}[SUGGESTIONS]${colors.reset} ${colors.cyan}Optimization Suggestions:${colors.reset}`
+      );
       for (const suggestion of suggestions) {
-        this.builder.log.info(`   • ${suggestion}`);
+        this.builder.log.info(
+          `   ${colors.dim}•${colors.reset} ${colors.white}${suggestion}${colors.reset}`
+        );
       }
       this.builder.log.info("");
     }
