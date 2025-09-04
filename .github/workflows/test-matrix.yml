@@ -32,10 +32,15 @@ jobs:
           bun install
           bun run build
 
-      - name: 🏗️ Build test project
+      - name: 🔗 Link local adapter to test project
         run: |
           cd test
           bun install
+          bun link ../packages/sveltekit
+
+      - name: 🏗️ Build test project
+        run: |
+          cd test
           bun run build
 
       - name: 🧪 Test executable (Unix)
