@@ -32,6 +32,13 @@ import {
 import { compileApplication } from "./utils/compile";
 import { generateDockerfile } from "./utils/docker";
 import { BuildReporter } from "./utils/reporter";
+import {
+  validateAssets,
+  generateValidationReport,
+  DEFAULT_VALIDATION_OPTIONS,
+  type ValidationOptions,
+  type AssetValidationResult,
+} from "./utils/validation";
 
 /**
  * Create the sveltekit-exec-adapter
@@ -91,18 +98,78 @@ const adapter = (options?: AdapterOptions): Adapter => {
       // Step 5: Generate assets imports
       reporter.startStep("assets");
       let assetCount = 0;
+      let validationResult: AssetValidationResult | null = null;
+
       if (adapterOptions.embedStatic) {
         const clientAssets = await discoverClientAssets(
           join(SVELTEKIT_DIR, "client"),
           join(SVELTEKIT_DIR, "prerendered")
         );
 
-        // Analyze assets for reporting
+        // Validate assets unless explicitly skipped
+        if (!adapterOptions.validation?.skip) {
+          reporter.startStep("validation");
+
+          // Merge validation options with defaults
+          const validationOptions: ValidationOptions = {
+            ...DEFAULT_VALIDATION_OPTIONS,
+            ...adapterOptions.validation,
+          };
+
+          validationResult = await validateAssets(
+            clientAssets,
+            validationOptions
+          );
+
+          // Log validation report
+          const validationReport = generateValidationReport(validationResult);
+          builder.log.info(
+            `${colors.blue}${colors.bright}[VALIDATION]${colors.reset}`
+          );
+          validationReport.forEach((line) => {
+            if (line.includes("❌") || line.includes("Errors")) {
+              builder.log.error(line);
+            } else if (line.includes("⚠️") || line.includes("Warnings")) {
+              builder.log.warn(line);
+            } else {
+              builder.log.info(line);
+            }
+          });
+
+          // Stop build if validation failed
+          if (!validationResult.isValid) {
+            throw new Error(
+              `Asset validation failed with ${validationResult.errors.length} error(s). ` +
+                `Check the validation report above for details.`
+            );
+          }
+
+          reporter.completeStep(
+            "validation",
+            `${validationResult.assetCount} assets validated`
+          );
+        }
+
+        // Analyze assets for reporting (using original analysis for backward compatibility)
         const assetAnalysis = analyzeAssets(clientAssets);
         assetCount = assetAnalysis.totalAssets;
 
-        // Warn about large assets
-        if (assetAnalysis.largeAssets.length > 0) {
+        // Warn about large assets (enhanced with validation data)
+        if (validationResult && validationResult.largeAssets.length > 0) {
+          builder.log.warn(
+            `${colors.yellow}${colors.bright}[WARNING]${colors.reset} ${colors.yellow}Found ${validationResult.largeAssets.length} large assets${colors.reset}`
+          );
+          for (const asset of validationResult.largeAssets.slice(0, 3)) {
+            const sizeMB = (asset.size / (1024 * 1024)).toFixed(1);
+            builder.log.warn(`   • ${asset.path}: ${sizeMB}MB (${asset.type})`);
+          }
+          if (validationResult.largeAssets.length > 3) {
+            builder.log.warn(
+              `   • ... and ${validationResult.largeAssets.length - 3} more`
+            );
+          }
+        } else if (assetAnalysis.largeAssets.length > 0) {
+          // Fallback to original analysis if validation was skipped
           builder.log.warn(
             `${colors.yellow}${colors.bright}[WARNING]${colors.reset} ${colors.yellow}Found ${assetAnalysis.largeAssets.length} large assets (>1MB)${colors.reset}`
           );
@@ -123,9 +190,9 @@ const adapter = (options?: AdapterOptions): Adapter => {
           assetImports
         );
 
-        const totalSizeMB = (assetAnalysis.totalSize / (1024 * 1024)).toFixed(
-          1
-        );
+        const totalSizeMB = validationResult
+          ? (validationResult.totalSize / (1024 * 1024)).toFixed(1)
+          : (assetAnalysis.totalSize / (1024 * 1024)).toFixed(1);
         reporter.completeStep(
           "assets",
           `${assetCount} assets, ${totalSizeMB}MB total`

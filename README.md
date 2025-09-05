@@ -116,7 +116,42 @@ Your SvelteKit app will run at `http://localhost:3000` with **full server capabi
 
 ## Configuration Options
 
-The adapter accepts various configuration options. Check the [detailed documentation](./packages/sveltekit/README.md) for complete configuration details.
+The adapter accepts various configuration options including **comprehensive asset validation** to ensure build reliability and optimize binary size.
+
+### Basic Configuration
+
+```js
+// svelte.config.js
+import adapter from "sveltekit-exec-adapter";
+
+export default {
+  kit: {
+    adapter: adapter({
+      binaryName: "my-app",
+      embedStatic: true,
+      validation: {
+        maxAssetSize: 50 * 1024 * 1024, // 50MB per asset
+        maxTotalSize: 500 * 1024 * 1024, // 500MB total
+        skip: false, // Enable validation
+      },
+    }),
+  },
+};
+```
+
+### Asset Validation
+
+The adapter includes **built-in asset validation** that:
+
+- ✅ Validates file existence and accessibility
+- ✅ Enforces size limits to prevent bloated binaries
+- ✅ Blocks dangerous file types (`.exe`, `.dll`, etc.)
+- ✅ Warns about potentially problematic assets
+- ✅ Provides detailed validation reports
+
+**[📖 Read the complete Asset Validation Guide](./ASSET_VALIDATION.md)**
+
+For complete configuration details, check the [detailed documentation](./packages/sveltekit/README.md).
 
 ## Deployment
 

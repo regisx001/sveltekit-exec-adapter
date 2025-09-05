@@ -13,6 +13,8 @@ interface ClientAsset {
   size?: number;
 }
 
+export type { ClientAsset };
+
 interface AssetAnalysis {
   totalAssets: number;
   totalSize: number;
