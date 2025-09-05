@@ -56,6 +56,7 @@ export class BuildReporter {
     { name: "server", description: "Copying server wrapper", weight: 1 },
     { name: "manifest", description: "Generating manifest", weight: 1 },
     { name: "assets", description: "Processing assets", weight: 2 },
+    { name: "validation", description: "Validation of assets", weight: 1 },
     { name: "compile", description: "Compiling to executable", weight: 4 },
     { name: "finalize", description: "Finalizing build", weight: 1 },
   ];

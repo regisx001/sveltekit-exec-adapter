@@ -62,6 +62,8 @@ Your SvelteKit application will start and be accessible at `http://localhost:300
 
 The adapter accepts the following options:
 
+### Basic Options
+
 - **`out`** (string): Output directory for the built binary (default: `"dist"`)
 - **`binaryName`** (string): Name of the executable file (default: `"app"`)
 - **`embedStatic`** (boolean): Whether to embed static assets in the binary (default: `true`)
@@ -73,6 +75,16 @@ The adapter accepts the following options:
   - `linux-x64-musl` (Alpine Linux)
   - `linux-arm64-musl` (ARM64 Alpine Linux)
 - **`volume`** (string): Volume mount point for persistent storage (optional, useful for self-hosting scenarios, e.g., `"/data"`)
+
+### Asset Validation Options
+
+- **`validation.maxAssetSize`** (number): Maximum individual asset size in bytes (default: 50MB)
+- **`validation.maxTotalSize`** (number): Maximum total size of all assets (default: 500MB)
+- **`validation.warnThreshold`** (number): Warn if asset is larger than this (default: 10MB)
+- **`validation.blockedExtensions`** (string[]): File extensions that trigger errors (default: `[".exe", ".dll", ".so", ".dylib", ".app", ".deb", ".rpm"]`)
+- **`validation.warnExtensions`** (string[]): File extensions that trigger warnings (default: `[".zip", ".tar", ".gz", ".rar", ".7z", ".iso", ".dmg"]`)
+- **`validation.allowedExtensions`** (string[]): If provided, only these extensions are allowed (optional)
+- **`validation.skip`** (boolean): Skip validation entirely (default: false, not recommended)
 
 ### Example with all options:
 
@@ -87,10 +99,29 @@ export default {
       embedStatic: true,
       target: "linux-x64",
       volume: "/data",
+      validation: {
+        maxAssetSize: 100 * 1024 * 1024, // 100MB per asset
+        maxTotalSize: 1024 * 1024 * 1024, // 1GB total
+        warnThreshold: 25 * 1024 * 1024, // Warn at 25MB
+        blockedExtensions: [".exe", ".dll"],
+        skip: false, // Enable validation
+      },
     }),
   },
 };
 ```
+
+## Asset Validation
+
+The adapter includes **comprehensive asset validation** to ensure build reliability:
+
+- ✅ **File Existence**: Validates all referenced assets exist and are accessible
+- ✅ **Size Limits**: Prevents oversized assets from creating bloated binaries
+- ✅ **File Type Security**: Blocks potentially dangerous file types like executables
+- ✅ **Naming Validation**: Detects temporary/system files that shouldn't be embedded
+- ✅ **Detailed Reporting**: Provides actionable feedback and optimization suggestions
+
+**[📖 Read the complete Asset Validation Guide](./ASSET_VALIDATION.md)**
 
 ## Environment Variables
 
