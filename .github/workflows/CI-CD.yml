@@ -13,20 +13,35 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        bun-version: ["1.0.0", "1.1.0", "1.1.30", "latest", "canary"]
+      fail-fast: false
+
+    name: Test (Bun ${{ matrix.bun-version }})
     defaults:
       run:
         working-directory: packages/sveltekit
+
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: 🛠️ Install Bun
+      - name: 🛠️ Install Bun ${{ matrix.bun-version }}
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: ${{ matrix.bun-version }}
 
       - name: 📦 Install dependencies
         run: bun install
 
       - name: ✅ Run tests
         run: bun run build
+
+      - name: 📊 Upload build artifacts (latest version only)
+        if: matrix.bun-version == 'latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts-${{ matrix.bun-version }}
+          path: packages/sveltekit/dist/
+          retention-days: 7

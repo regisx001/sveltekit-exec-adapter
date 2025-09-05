@@ -140,7 +140,7 @@ const adapter = (options?: AdapterOptions): Adapter => {
           if (!validationResult.isValid) {
             throw new Error(
               `Asset validation failed with ${validationResult.errors.length} error(s). ` +
-                `Check the validation report above for details.`
+                `Check thevalidation report above for details.`
             );
           }
 
