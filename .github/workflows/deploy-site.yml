@@ -17,6 +17,8 @@ concurrency:
   group: "pages"
   cancel-in-progress: false
 
+env:
+  BASE_URL: "sveltekit-exec-adapter"
 jobs:
   build_site:
     runs-on: ubuntu-latest

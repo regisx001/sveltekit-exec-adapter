@@ -9,6 +9,9 @@ const config = {
 	preprocess: [vitePreprocess(), mdsvex()],
 	kit: {
 		adapter: adapter(),
+		paths: {
+			base: process.env.BASE_URL || ''
+		},
 		prerender: {
 			handleMissingId: 'ignore', // or 'warn' to see it without failing
 			handleHttpError: ({ path, referrer, message }) => {

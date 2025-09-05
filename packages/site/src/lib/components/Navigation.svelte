@@ -3,6 +3,7 @@
 	import { Github, ExternalLink, Menu, X } from '@lucide/svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import favicon from '$lib/assets/favicon.png';
+	import { base } from '$app/paths';
 
 	let mobileMenuOpen = $state(false);
 
@@ -21,7 +22,7 @@
 		<div class="flex h-16 items-center justify-between">
 			<!-- Logo -->
 			<div class="flex items-center space-x-3">
-				<img src={favicon} width="80" alt="" />
+				<img src="{base}/favicon.png" width="80" alt="" />
 				<div class="text-lg font-bold">
 					<span class="text-primary">SvelteKit</span>
 					<span class="text-foreground">Exec</span>
