@@ -67,7 +67,7 @@ const config = {
 
 #### Component Paths
 
-- **UI Components**: `$lib/components/ui/[component-name]`
+- **UI Components**: `$lib/components/ui/[component-name]/index.js`
 - **Custom Components**: `$lib/components/[ComponentName].svelte`
 - **Utils**: `$lib/utils.ts`
 - **Hooks**: `$lib/hooks/`
@@ -76,11 +76,38 @@ const config = {
 
 ```svelte
 <script lang="ts">
-  import { Button } from '$lib/components/ui/button';
-  import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
-  import { Badge } from '$lib/components/ui/badge';
-  import { Alert, AlertDescription } from '$lib/components/ui/alert';
+  import { Button } from '$lib/components/ui/button/index.js';
+  import * as Card from '$lib/components/ui/card/index.js';
+  import { Badge } from '$lib/components/ui/badge/index.js';
+  import { Alert, AlertDescription } from '$lib/components/ui/alert/index.js';
 </script>
+```
+
+#### Card Component Usage
+
+**IMPORTANT**: shadcn-svelte uses namespace imports for Card components:
+
+```svelte
+<script lang="ts">
+  import * as Card from '$lib/components/ui/card/index.js';
+</script>
+
+<Card.Root class="w-full max-w-sm">
+  <Card.Header>
+    <Card.Title>Card Title</Card.Title>
+    <Card.Description>Card description text</Card.Description>
+    <Card.Action>
+      <Button variant="link">Action Button</Button>
+    </Card.Action>
+  </Card.Header>
+  <Card.Content>
+    <!-- Card content here -->
+  </Card.Content>
+  <Card.Footer class="flex-col gap-2">
+    <Button type="submit" class="w-full">Primary Action</Button>
+    <Button variant="outline" class="w-full">Secondary Action</Button>
+  </Card.Footer>
+</Card.Root>
 ```
 
 #### Available UI Components
@@ -262,8 +289,8 @@ src/
 
 ```svelte
 <script lang="ts">
-  import { Button } from '$lib/components/ui/button';
-  import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
+  import { Button } from '$lib/components/ui/button/index.js';
+  import * as Card from '$lib/components/ui/card/index.js';
   import { Download, Github } from '@lucide/svelte';
 
   interface FeatureCardProps {
@@ -278,25 +305,25 @@ src/
   let isHovered = $state(false);
 </script>
 
-<Card
+<Card.Root
   class={variant === 'highlighted' ? 'border-primary bg-primary/5' : 'bg-card'}
   onmouseenter={() => isHovered = true}
   onmouseleave={() => isHovered = false}
 >
-  <CardHeader>
-    <CardTitle class="flex items-center gap-2 text-foreground">
+  <Card.Header>
+    <Card.Title class="flex items-center gap-2 text-foreground">
       {#if Icon}
         <Icon size={20} aria-hidden="true" class="text-primary" />
       {/if}
       {title}
-    </CardTitle>
-  </CardHeader>
-  <CardContent>
+    </Card.Title>
+  </Card.Header>
+  <Card.Content>
     <p class="text-muted-foreground">{description}</p>
-  </CardContent>
-</Card>
+  </Card.Content>
+</Card.Root>
 ```
 
 - do not use emogies in the code base
 
-  Follow these guidelines consistently to maintain a cohesive, performant, and accessible documentation site that properly showcases the SvelteKit Exec Adapter's capabilities.
+Follow these guidelines consistently to maintain a cohesive, performant, and accessible documentation site that properly showcases the SvelteKit Exec Adapter's capabilities.

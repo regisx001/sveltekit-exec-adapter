@@ -9,9 +9,7 @@ const config = {
 	preprocess: [vitePreprocess(), mdsvex()],
 	kit: {
 		adapter: adapter(),
-		paths: {
-			base: process.env.BASE_URL || ''
-		},
+		paths: { base: process.env.BASE_URL || '' },
 		prerender: {
 			handleMissingId: 'ignore', // or 'warn' to see it without failing
 			handleHttpError: ({ path, referrer, message }) => {
@@ -19,13 +17,13 @@ const config = {
 				if (path === '/favicon.png' || path.startsWith('/favicon')) {
 					return;
 				}
+
 				// Log other errors
 				console.warn(`${message} (${path} referenced by ${referrer})`);
 			},
 			entries: [
 				'*' // Include all routes by default
-				// Dynamic routes will be handled by their individual entries functions
-			]
+			] // Dynamic routes will be handled by their individual entries functions
 		}
 	},
 	extensions: ['.svelte', '.svx']
