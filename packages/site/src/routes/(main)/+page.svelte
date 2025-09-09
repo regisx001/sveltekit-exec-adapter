@@ -26,8 +26,12 @@
 		Rocket,
 		Lock,
 		FileText,
-		Cpu
+		Cpu,
+		X,
+		AlertTriangle
 	} from '@lucide/svelte';
+	import { base } from '$app/paths';
+	import { GITHUB_URL } from '$lib/constants';
 
 	const features = [
 		{
@@ -167,12 +171,18 @@
 
 			<!-- CTA Buttons -->
 			<div class="mb-12 flex flex-col justify-center gap-4 sm:flex-row">
-				<Button size="lg" class="h-auto px-8 py-4 text-lg">
+				<Button href={base + '/docs'} size="lg" class="h-auto px-8 py-4 text-lg">
 					<Download class="mr-2 h-5 w-5" />
 					Get Started
 					<ArrowRight class="ml-2 h-5 w-5" />
 				</Button>
-				<Button variant="outline" size="lg" class="h-auto px-8 py-4 text-lg">
+				<Button
+					href={GITHUB_URL}
+					target="_blank"
+					variant="outline"
+					size="lg"
+					class="h-auto px-8 py-4 text-lg"
+				>
 					<Github class="mr-2 h-5 w-5" />
 					View on GitHub
 					<ExternalLink class="ml-2 h-4 w-4" />
@@ -214,11 +224,20 @@
 						<CardTitle class="text-lg">SPA + Native Backend</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<p class="text-muted-foreground text-sm">
-							❌ Lose SvelteKit's server features<br />
-							❌ Requires separate API development<br />
-							❌ Complex deployment process
-						</p>
+						<div class="text-muted-foreground space-y-2 text-sm">
+							<div class="flex items-center gap-2">
+								<X class="text-destructive h-4 w-4" />
+								<span>Lose SvelteKit's server features</span>
+							</div>
+							<div class="flex items-center gap-2">
+								<X class="text-destructive h-4 w-4" />
+								<span>Requires separate API development</span>
+							</div>
+							<div class="flex items-center gap-2">
+								<X class="text-destructive h-4 w-4" />
+								<span>Complex deployment process</span>
+							</div>
+						</div>
 					</CardContent>
 				</Card>
 
@@ -232,11 +251,20 @@
 						<CardTitle class="text-lg">Docker Containers</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<p class="text-muted-foreground text-sm">
-							❌ Requires Docker installation<br />
-							❌ Complex for end users<br />
-							❌ Large image sizes
-						</p>
+						<div class="text-muted-foreground space-y-2 text-sm">
+							<div class="flex items-center gap-2">
+								<X class="text-destructive h-4 w-4" />
+								<span>Requires Docker installation</span>
+							</div>
+							<div class="flex items-center gap-2">
+								<X class="text-destructive h-4 w-4" />
+								<span>Complex for end users</span>
+							</div>
+							<div class="flex items-center gap-2">
+								<X class="text-destructive h-4 w-4" />
+								<span>Large image sizes</span>
+							</div>
+						</div>
 					</CardContent>
 				</Card>
 
@@ -250,11 +278,20 @@
 						<CardTitle class="text-lg">Desktop Apps</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<p class="text-muted-foreground text-sm">
-							❌ Can't deploy to web<br />
-							❌ Platform-specific builds<br />
-							❌ App store restrictions
-						</p>
+						<div class="text-muted-foreground space-y-2 text-sm">
+							<div class="flex items-center gap-2">
+								<X class="text-destructive h-4 w-4" />
+								<span>Can't deploy to web</span>
+							</div>
+							<div class="flex items-center gap-2">
+								<X class="text-destructive h-4 w-4" />
+								<span>Platform-specific builds</span>
+							</div>
+							<div class="flex items-center gap-2">
+								<X class="text-destructive h-4 w-4" />
+								<span>App store restrictions</span>
+							</div>
+						</div>
 					</CardContent>
 				</Card>
 			</div>
@@ -269,12 +306,24 @@
 					<CheckCircle class="text-primary h-8 w-8" />
 				</div>
 				<h3 class="mb-4 text-2xl font-bold">SvelteKit Exec Adapter Solution</h3>
-				<p class="text-muted-foreground mb-6 text-lg">
-					✅ <strong>Full SvelteKit capabilities preserved</strong><br />
-					✅ <strong>Single binary, no runtime dependencies</strong><br />
-					✅ <strong>Cross-platform executable</strong><br />
-					✅ <strong>Runs anywhere: locally or on cloud machines</strong>
-				</p>
+				<div class="text-muted-foreground mb-6 space-y-3 text-lg">
+					<div class="flex items-center justify-center gap-3">
+						<CheckCircle class="h-5 w-5 text-green-600 dark:text-green-400" />
+						<strong>Full SvelteKit capabilities preserved</strong>
+					</div>
+					<div class="flex items-center justify-center gap-3">
+						<CheckCircle class="h-5 w-5 text-green-600 dark:text-green-400" />
+						<strong>Single binary, no runtime dependencies</strong>
+					</div>
+					<div class="flex items-center justify-center gap-3">
+						<CheckCircle class="h-5 w-5 text-green-600 dark:text-green-400" />
+						<strong>Cross-platform executable</strong>
+					</div>
+					<div class="flex items-center justify-center gap-3">
+						<CheckCircle class="h-5 w-5 text-green-600 dark:text-green-400" />
+						<strong>Runs anywhere: locally or on cloud machines</strong>
+					</div>
+				</div>
 				<Button class="mt-4">
 					Learn How It Works
 					<ArrowRight class="ml-2 h-4 w-4" />
@@ -420,7 +469,7 @@
 						<div
 							class="bg-primary text-primary-foreground flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-sm font-bold"
 						>
-							✓
+							<CheckCircle size={16} />
 						</div>
 						<div>
 							<h3 class="mb-2 font-semibold">Deploy Anywhere</h3>
@@ -478,11 +527,11 @@
 			</div>
 
 			<div class="mt-12 text-center">
-				<Button size="lg" class="mr-4">
+				<Button href={base + '/docs'} size="lg" class="mr-4">
 					<FileText class="mr-2 h-5 w-5" />
 					Read the Docs
 				</Button>
-				<Button variant="outline" size="lg">
+				<Button href={base + 'docs/examples/basic'} variant="outline" size="lg">
 					<Github class="mr-2 h-5 w-5" />
 					View Examples
 				</Button>
@@ -502,14 +551,21 @@
 			</p>
 
 			<div class="flex flex-col justify-center gap-4 sm:flex-row">
-				<Button size="lg" variant="secondary" class="h-auto px-8 py-4 text-lg">
+				<Button
+					href={base + '/docs'}
+					size="lg"
+					variant="secondary"
+					class="h-auto px-8 py-4 text-lg"
+				>
 					<Download class="mr-2 h-5 w-5" />
 					Get Started Now
 				</Button>
 				<Button
+					href={GITHUB_URL}
+					target="_blank"
 					size="lg"
 					variant="outline"
-					class="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary h-auto px-8 py-4 text-lg"
+					class="border-primary-foreground bg-primary-foreground text-primary h-auto px-8 py-4 text-lg"
 				>
 					<Github class="mr-2 h-5 w-5" />
 					Star on GitHub
@@ -517,10 +573,13 @@
 			</div>
 
 			<div class="border-primary-foreground/20 mt-12 border-t pt-12">
-				<p class="text-sm opacity-75">
-					⚠️ <strong>Experimental Project:</strong> This adapter is currently under active development.
-					Use with caution in production environments.
-				</p>
+				<div class="flex items-center justify-center gap-2 text-sm opacity-75">
+					<AlertTriangle class="h-4 w-4" />
+					<span
+						><strong>Experimental Project:</strong> This adapter is currently under active development.
+						Use with caution in production environments.</span
+					>
+				</div>
 			</div>
 		</div>
 	</div>

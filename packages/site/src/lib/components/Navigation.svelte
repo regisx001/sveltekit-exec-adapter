@@ -55,7 +55,7 @@
 					<Github class="mr-2 h-4 w-4" />
 					GitHub
 				</Button>
-				<Button size="sm" href={base + '/docs/quick-start/'} class="hidden sm:inline-flex">
+				<Button size="sm" href={base + '/docs/'} class="hidden sm:inline-flex">
 					Get Started
 					<ExternalLink class="ml-1 h-3 w-3" />
 				</Button>
@@ -100,7 +100,7 @@
 							<Github class="mr-2 h-4 w-4" />
 							GitHub
 						</Button>
-						<Button href={base + '/docs/quick-start/'} size="sm" class="w-full">
+						<Button href={base + '/docs/'} size="sm" class="w-full">
 							Get Started
 							<ExternalLink class="ml-1 h-3 w-3" />
 						</Button>

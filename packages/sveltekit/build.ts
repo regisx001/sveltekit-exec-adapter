@@ -1,6 +1,6 @@
 // Libs
 import { cp, rm, mkdir, stat } from "fs/promises";
-import { $ } from "bun";
+import { execSync } from "child_process";
 import { join } from "path";
 
 // Colors for terminal output
@@ -103,9 +103,24 @@ const buildSteps: BuildStep[] = [
   {
     name: "Generate type definitions",
     action: async () => {
-      const result = await $`bun tsc --project tsconfig.types.json`.quiet();
-      if (result.exitCode !== 0) {
-        throw new Error("TypeScript compilation failed");
+      try {
+        // Try bun tsc first, fallback to npx tsc for older Bun versions
+        try {
+          execSync("bun tsc --project tsconfig.types.json", {
+            stdio: "pipe",
+            encoding: "utf8",
+          });
+        } catch (bunError) {
+          // Fallback to npx tsc for Bun versions that don't support tsc
+          execSync("npx tsc --project tsconfig.types.json", {
+            stdio: "pipe",
+            encoding: "utf8",
+          });
+        }
+      } catch (error) {
+        throw new Error(
+          `TypeScript compilation failed: ${(error as any).message}`
+        );
       }
     },
   },
