@@ -14,6 +14,7 @@
 		Download,
 		Github
 	} from '@lucide/svelte';
+	import { PACKAGE_VERSION } from '$lib/constants';
 
 	let { children } = $props();
 
@@ -39,7 +40,7 @@
 			items: [
 				{ name: 'Basic App', href: '/docs/examples/basic', icon: FileText },
 				{ name: 'Full-Stack App', href: '/docs/examples/full-stack', icon: Code },
-				{ name: 'API Server', href: '/docs/examples/api', icon: Settings }
+				{ name: 'API Server', href: '/docs/examples/api-server', icon: Settings }
 			]
 		}
 	];
@@ -69,7 +70,7 @@
 				<div class="border-border border-b p-6">
 					<div class="flex items-center justify-between">
 						<h2 class="text-foreground text-lg font-semibold">Documentation</h2>
-						<Badge variant="outline" class="text-xs">v0.3.3</Badge>
+						<Badge variant="outline" class="text-xs">v{PACKAGE_VERSION}</Badge>
 					</div>
 				</div>
 

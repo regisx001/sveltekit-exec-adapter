@@ -1,0 +1,355 @@
+---
+layout: docs
+---
+
+# Build Process
+
+Understand how the SvelteKit Exec Adapter transforms your application into a single executable binary.
+
+## Overview
+
+The build process involves several stages that transform your SvelteKit application into a standalone executable:
+
+```mermaid
+graph TD
+    A[SvelteKit Build] --> B[Asset Processing]
+    B --> C[Bundle Creation]
+    C --> D[Bun Compilation]
+    D --> E[Executable Binary]
+```
+
+## Stage 1: SvelteKit Build
+
+The adapter first runs the standard SvelteKit build process:
+
+```bash
+✅ SvelteKit build started
+📦 Bundling client-side code...
+🔧 Building server-side code...
+✅ SvelteKit build completed
+```
+
+**What happens:**
+
+- Client code is bundled and optimized
+- Server routes are compiled
+- Static assets are processed
+- Build artifacts are created in `.svelte-kit/output`
+
+## Stage 2: Asset Processing
+
+The adapter analyzes and processes all static assets:
+
+```bash
+📊 Analyzing assets...
+🔍 Found 42 static files (12.3 MB total)
+✅ Asset validation passed
+📦 Embedding static assets...
+```
+
+**Asset validation checks:**
+
+- Individual file size limits
+- Total asset size limits
+- File type restrictions
+- Security validations
+
+**Asset embedding process:**
+
+1. **Scan static directory** - Find all static files
+2. **Validate assets** - Check size and type restrictions
+3. **Encode assets** - Convert to base64 or binary format
+4. **Embed in bundle** - Include in the final executable
+
+### Asset Embedding Example
+
+```javascript
+// Before: Traditional file serving
+app.use('/static', express.static('static'));
+
+// After: Embedded asset serving
+app.get('/favicon.png', (req, res) => {
+	res.type('image/png');
+	res.send(Buffer.from(EMBEDDED_ASSETS.favicon_png, 'base64'));
+});
+```
+
+## Stage 3: Bundle Creation
+
+The adapter creates a unified bundle containing:
+
+```bash
+🔧 Creating bundle...
+   ├── Server code
+   ├── Client assets
+   ├── Static files (embedded)
+   ├── Runtime configuration
+   └── Bun runtime headers
+```
+
+**Bundle structure:**
+
+```
+bundle.js
+├── SvelteKit server code
+├── API routes and middleware
+├── Client-side assets (HTML, CSS, JS)
+├── Embedded static files
+├── Environment configuration
+└── Startup scripts
+```
+
+### Server Bundle Example
+
+```javascript
+// Generated bundle.js (simplified)
+import { createServer } from 'http';
+import { handler } from './app.js';
+
+// Embedded assets
+const ASSETS = {
+	'favicon.png': 'iVBORw0KGgoAAAANSUhEUgAA...',
+	'app.css': 'body{margin:0;padding:0}...'
+};
+
+// Asset serving middleware
+function serveAsset(path) {
+	if (ASSETS[path]) {
+		return ASSETS[path];
+	}
+	return null;
+}
+
+// Start server
+const server = createServer(handler);
+server.listen(3000);
+```
+
+## Stage 4: Bun Compilation
+
+The bundle is compiled into an executable using Bun:
+
+```bash
+🔨 Compiling executable with Bun...
+🎯 Target: linux-x64
+📦 Bundle size: 15.2 MB
+⚡ Compilation completed in 3.2s
+```
+
+**Compilation process:**
+
+1. **Bundle analysis** - Bun analyzes the JavaScript bundle
+2. **Dependency resolution** - All imports are resolved statically
+3. **Runtime embedding** - Bun runtime is included in the binary
+4. **Platform compilation** - Code is compiled for the target platform
+5. **Asset integration** - Embedded assets are included in the binary
+
+### Bun Compilation Command
+
+```bash
+# Equivalent to what the adapter runs
+bun build bundle.js \
+  --compile \
+  --target=bun-linux-x64 \
+  --outfile=my-app
+```
+
+## Stage 5: Executable Creation
+
+The final executable contains everything needed to run your app:
+
+```bash
+✅ Executable created: build/my-app
+📊 Final size: 47.3 MB
+🚀 Ready to deploy!
+```
+
+**Executable structure:**
+
+```
+my-app (executable)
+├── Bun runtime (30MB)
+├── Your application code (10MB)
+├── Node.js polyfills (5MB)
+└── Embedded assets (2.3MB)
+```
+
+## Build Optimization
+
+### Reducing Binary Size
+
+**1. Optimize asset embedding:**
+
+```javascript
+adapter({
+	embedStatic: false, // Serve from filesystem
+	validation: {
+		allowedExtensions: ['.js', '.css', '.svg'] // Essential files only
+	}
+});
+```
+
+**2. Minimize dependencies:**
+
+```javascript
+// Avoid large dependencies in your SvelteKit app
+import { lightweight } from 'small-library';
+// Instead of
+import { heavy } from 'massive-library';
+```
+
+**3. Use asset optimization:**
+
+```bash
+# Optimize images before build
+npm install -D @squoosh/cli
+squoosh-cli --webp static/images/*.jpg
+```
+
+### Build Performance
+
+**Parallel processing:**
+
+```javascript
+// The adapter automatically uses available CPU cores
+// for asset processing and compression
+```
+
+**Incremental builds:**
+
+```bash
+# Only rebuilds changed assets
+npm run build # Full build first time
+npm run build # Incremental subsequent builds
+```
+
+## Cross-Platform Building
+
+### Target Platforms
+
+The adapter supports building for different platforms:
+
+```javascript
+// Build for specific platform
+adapter({
+	target: 'windows-x64' // Build Windows executable on any platform
+});
+```
+
+**Available targets:**
+
+- `linux-x64` - Linux 64-bit
+- `linux-arm64` - Linux ARM64
+- `darwin-x64` - macOS Intel
+- `darwin-arm64` - macOS Apple Silicon
+- `windows-x64` - Windows 64-bit
+
+### CI/CD Integration
+
+```yaml
+# GitHub Actions example
+name: Cross-platform Build
+on: [push]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        platform:
+          - { os: ubuntu-latest, target: linux-x64 }
+          - { os: macos-latest, target: darwin-x64 }
+          - { os: windows-latest, target: windows-x64 }
+
+    runs-on: ${{ matrix.platform.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: oven-sh/setup-bun@v1
+      - run: npm ci
+      - run: npm run build
+        env:
+          TARGET: ${{ matrix.platform.target }}
+```
+
+## Debugging Build Issues
+
+### Verbose Logging
+
+Enable detailed build output:
+
+```bash
+DEBUG=sveltekit-exec-adapter npm run build
+```
+
+### Common Build Problems
+
+**1. Asset too large:**
+
+```
+❌ Error: Asset 'large-video.mp4' (150MB) exceeds limit (50MB)
+
+Solution: Increase limit or exclude the file
+adapter({
+	validation: { maxAssetSize: 200 * 1024 * 1024 }
+})
+```
+
+**2. Unsupported file type:**
+
+```
+❌ Error: File type '.exe' is blocked for security
+
+Solution: Remove blocked files or adjust validation
+adapter({
+	validation: { blockedExtensions: [] }
+})
+```
+
+**3. Bun compilation fails:**
+
+```
+❌ Error: Cannot resolve module 'some-native-module'
+
+Solution: Use pure JavaScript alternatives or exclude native modules
+```
+
+### Build Analysis
+
+Analyze your build output:
+
+```bash
+# Check executable size
+ls -lh build/my-app
+
+# Analyze bundle composition
+bun analyze bundle.js
+
+# Check asset sizes
+du -sh static/*
+```
+
+## Advanced Build Customization
+
+### Custom Asset Processing
+
+```javascript
+// In your build script
+import { readFileSync, writeFileSync } from 'fs';
+
+// Pre-process assets before build
+const css = readFileSync('app.css', 'utf8');
+const minified = css.replace(/\s+/g, ' ').trim();
+writeFileSync('app.min.css', minified);
+```
+
+### Post-Build Scripts
+
+```json
+{
+	"scripts": {
+		"build": "svelte-kit build && npm run post-build",
+		"post-build": "node scripts/sign-executable.js"
+	}
+}
+```
+
+The build process is designed to be robust, fast, and produce optimized executables while maintaining all SvelteKit functionality.

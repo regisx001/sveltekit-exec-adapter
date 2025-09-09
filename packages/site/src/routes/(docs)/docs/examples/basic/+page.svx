@@ -1,0 +1,715 @@
+---
+layout: docs
+---
+
+# Basic Example
+
+A complete walkthrough of creating your first executable SvelteKit application.
+
+## Project Overview
+
+We'll build a simple note-taking application that demonstrates:
+
+- Static file serving
+- Local data persistence
+- Simple API routes
+- Client-side interactivity
+
+## Project Setup
+
+### 1. Initialize the Project
+
+```bash
+# Create new SvelteKit project
+npm create svelte@latest my-notes-app
+cd my-notes-app
+npm install
+
+# Install the exec adapter
+npm install -D sveltekit-exec-adapter
+```
+
+### 2. Configure the Adapter
+
+```javascript
+// svelte.config.js
+import adapter from 'sveltekit-exec-adapter';
+
+/** @type {import('@sveltejs/kit').Config} */
+const config = {
+	kit: {
+		adapter: adapter({
+			embedStatic: true,
+			validation: {
+				maxAssetSize: 10 * 1024 * 1024, // 10MB
+				allowedExtensions: ['.css', '.js', '.png', '.svg', '.ico']
+			}
+		}),
+		prerender: {
+			entries: []
+		}
+	}
+};
+
+export default config;
+```
+
+## Application Code
+
+### 3. Database Setup
+
+```javascript
+// src/lib/database.js
+import Database from 'better-sqlite3';
+import { join } from 'path';
+import { homedir } from 'os';
+import { mkdirSync, existsSync } from 'fs';
+
+// Create app data directory
+const appDir = join(homedir(), '.my-notes-app');
+if (!existsSync(appDir)) {
+	mkdirSync(appDir, { recursive: true });
+}
+
+// Initialize SQLite database
+const dbPath = join(appDir, 'notes.db');
+export const db = new Database(dbPath);
+
+// Create tables
+db.exec(`
+	CREATE TABLE IF NOT EXISTS notes (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		title TEXT NOT NULL,
+		content TEXT NOT NULL,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	)
+`);
+
+// Prepare statements for better performance
+export const statements = {
+	getAllNotes: db.prepare('SELECT * FROM notes ORDER BY updated_at DESC'),
+	getNoteById: db.prepare('SELECT * FROM notes WHERE id = ?'),
+	insertNote: db.prepare('INSERT INTO notes (title, content) VALUES (?, ?)'),
+	updateNote: db.prepare(
+		'UPDATE notes SET title = ?, content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+	),
+	deleteNote: db.prepare('DELETE FROM notes WHERE id = ?')
+};
+```
+
+### 4. API Routes
+
+```javascript
+// src/routes/api/notes/+server.js
+import { json } from '@sveltejs/kit';
+import { statements } from '$lib/database.js';
+
+export function GET() {
+	try {
+		const notes = statements.getAllNotes.all();
+		return json(notes);
+	} catch (error) {
+		console.error('Failed to fetch notes:', error);
+		return json({ error: 'Failed to fetch notes' }, { status: 500 });
+	}
+}
+
+export async function POST({ request }) {
+	try {
+		const { title, content } = await request.json();
+
+		if (!title || !content) {
+			return json({ error: 'Title and content are required' }, { status: 400 });
+		}
+
+		const result = statements.insertNote.run(title, content);
+		const note = statements.getNoteById.get(result.lastInsertRowid);
+
+		return json(note, { status: 201 });
+	} catch (error) {
+		console.error('Failed to create note:', error);
+		return json({ error: 'Failed to create note' }, { status: 500 });
+	}
+}
+```
+
+```javascript
+// src/routes/api/notes/[id]/+server.js
+import { json } from '@sveltejs/kit';
+import { statements } from '$lib/database.js';
+
+export function GET({ params }) {
+	try {
+		const note = statements.getNoteById.get(params.id);
+
+		if (!note) {
+			return json({ error: 'Note not found' }, { status: 404 });
+		}
+
+		return json(note);
+	} catch (error) {
+		console.error('Failed to fetch note:', error);
+		return json({ error: 'Failed to fetch note' }, { status: 500 });
+	}
+}
+
+export async function PUT({ params, request }) {
+	try {
+		const { title, content } = await request.json();
+
+		if (!title || !content) {
+			return json({ error: 'Title and content are required' }, { status: 400 });
+		}
+
+		const result = statements.updateNote.run(title, content, params.id);
+
+		if (result.changes === 0) {
+			return json({ error: 'Note not found' }, { status: 404 });
+		}
+
+		const note = statements.getNoteById.get(params.id);
+		return json(note);
+	} catch (error) {
+		console.error('Failed to update note:', error);
+		return json({ error: 'Failed to update note' }, { status: 500 });
+	}
+}
+
+export function DELETE({ params }) {
+	try {
+		const result = statements.deleteNote.run(params.id);
+
+		if (result.changes === 0) {
+			return json({ error: 'Note not found' }, { status: 404 });
+		}
+
+		return json({ success: true });
+	} catch (error) {
+		console.error('Failed to delete note:', error);
+		return json({ error: 'Failed to delete note' }, { status: 500 });
+	}
+}
+```
+
+### 5. Frontend Components
+
+```svelte
+<!-- src/lib/components/NoteCard.svelte -->
+<script>
+	import { createEventDispatcher } from 'svelte';
+
+	export let note;
+
+	const dispatch = createEventDispatcher();
+
+	function handleEdit() {
+		dispatch('edit', note);
+	}
+
+	function handleDelete() {
+		if (confirm('Are you sure you want to delete this note?')) {
+			dispatch('delete', note.id);
+		}
+	}
+
+	function formatDate(dateString) {
+		return new Date(dateString).toLocaleDateString('en-US', {
+			year: 'numeric',
+			month: 'short',
+			day: 'numeric',
+			hour: '2-digit',
+			minute: '2-digit'
+		});
+	}
+</script>
+
+<div class="note-card">
+	<div class="note-header">
+		<h3>{note.title}</h3>
+		<div class="note-actions">
+			<button on:click={handleEdit} class="btn-edit">Edit</button>
+			<button on:click={handleDelete} class="btn-delete">Delete</button>
+		</div>
+	</div>
+	<div class="note-content">
+		{note.content}
+	</div>
+	<div class="note-meta">
+		<small>
+			Created: {formatDate(note.created_at)}
+			{#if note.updated_at !== note.created_at}
+				• Updated: {formatDate(note.updated_at)}
+			{/if}
+		</small>
+	</div>
+</div>
+
+<style>
+	.note-card {
+		border: 1px solid #e1e5e9;
+		border-radius: 8px;
+		padding: 16px;
+		margin-bottom: 16px;
+		background: white;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+	}
+
+	.note-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 8px;
+	}
+
+	.note-header h3 {
+		margin: 0;
+		color: #2d3748;
+	}
+
+	.note-actions {
+		display: flex;
+		gap: 8px;
+	}
+
+	.btn-edit,
+	.btn-delete {
+		padding: 4px 8px;
+		border: 1px solid;
+		border-radius: 4px;
+		cursor: pointer;
+		font-size: 12px;
+	}
+
+	.btn-edit {
+		border-color: #3182ce;
+		color: #3182ce;
+		background: white;
+	}
+
+	.btn-edit:hover {
+		background: #3182ce;
+		color: white;
+	}
+
+	.btn-delete {
+		border-color: #e53e3e;
+		color: #e53e3e;
+		background: white;
+	}
+
+	.btn-delete:hover {
+		background: #e53e3e;
+		color: white;
+	}
+
+	.note-content {
+		margin-bottom: 8px;
+		line-height: 1.5;
+		color: #4a5568;
+		white-space: pre-wrap;
+	}
+
+	.note-meta {
+		color: #718096;
+		border-top: 1px solid #e2e8f0;
+		padding-top: 8px;
+	}
+</style>
+```
+
+```svelte
+<!-- src/lib/components/NoteForm.svelte -->
+<script>
+	import { createEventDispatcher } from 'svelte';
+
+	export let note = { title: '', content: '' };
+	export let isEditing = false;
+
+	const dispatch = createEventDispatcher();
+
+	let title = note.title;
+	let content = note.content;
+
+	function handleSubmit() {
+		if (!title.trim() || !content.trim()) {
+			alert('Please fill in both title and content');
+			return;
+		}
+
+		dispatch('save', { title: title.trim(), content: content.trim() });
+
+		// Reset form if creating new note
+		if (!isEditing) {
+			title = '';
+			content = '';
+		}
+	}
+
+	function handleCancel() {
+		dispatch('cancel');
+
+		// Reset form
+		title = note.title;
+		content = note.content;
+	}
+</script>
+
+<form on:submit|preventDefault={handleSubmit} class="note-form">
+	<div class="form-group">
+		<label for="title">Title</label>
+		<input id="title" type="text" bind:value={title} placeholder="Enter note title..." required />
+	</div>
+
+	<div class="form-group">
+		<label for="content">Content</label>
+		<textarea
+			id="content"
+			bind:value={content}
+			placeholder="Write your note here..."
+			rows="6"
+			required
+		></textarea>
+	</div>
+
+	<div class="form-actions">
+		<button type="submit" class="btn-primary">
+			{isEditing ? 'Update Note' : 'Create Note'}
+		</button>
+		{#if isEditing}
+			<button type="button" on:click={handleCancel} class="btn-secondary"> Cancel </button>
+		{/if}
+	</div>
+</form>
+
+<style>
+	.note-form {
+		background: white;
+		border: 1px solid #e1e5e9;
+		border-radius: 8px;
+		padding: 16px;
+		margin-bottom: 24px;
+	}
+
+	.form-group {
+		margin-bottom: 16px;
+	}
+
+	.form-group label {
+		display: block;
+		margin-bottom: 4px;
+		font-weight: 500;
+		color: #2d3748;
+	}
+
+	.form-group input,
+	.form-group textarea {
+		width: 100%;
+		padding: 8px 12px;
+		border: 1px solid #e2e8f0;
+		border-radius: 4px;
+		font-family: inherit;
+	}
+
+	.form-group input:focus,
+	.form-group textarea:focus {
+		outline: none;
+		border-color: #3182ce;
+		box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+	}
+
+	.form-actions {
+		display: flex;
+		gap: 8px;
+	}
+
+	.btn-primary,
+	.btn-secondary {
+		padding: 8px 16px;
+		border-radius: 4px;
+		cursor: pointer;
+		font-weight: 500;
+	}
+
+	.btn-primary {
+		background: #3182ce;
+		color: white;
+		border: 1px solid #3182ce;
+	}
+
+	.btn-primary:hover {
+		background: #2c5aa0;
+	}
+
+	.btn-secondary {
+		background: white;
+		color: #4a5568;
+		border: 1px solid #e2e8f0;
+	}
+
+	.btn-secondary:hover {
+		background: #f7fafc;
+	}
+</style>
+```
+
+### 6. Main Page
+
+```svelte
+<!-- src/routes/+page.svelte -->
+<script>
+	import { onMount } from 'svelte';
+	import NoteCard from '$lib/components/NoteCard.svelte';
+	import NoteForm from '$lib/components/NoteForm.svelte';
+
+	let notes = [];
+	let editingNote = null;
+	let loading = false;
+
+	onMount(() => {
+		loadNotes();
+	});
+
+	async function loadNotes() {
+		loading = true;
+		try {
+			const response = await fetch('/api/notes');
+			if (response.ok) {
+				notes = await response.json();
+			} else {
+				console.error('Failed to load notes');
+			}
+		} catch (error) {
+			console.error('Error loading notes:', error);
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function createNote({ detail }) {
+		try {
+			const response = await fetch('/api/notes', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(detail)
+			});
+
+			if (response.ok) {
+				await loadNotes(); // Refresh list
+			} else {
+				console.error('Failed to create note');
+			}
+		} catch (error) {
+			console.error('Error creating note:', error);
+		}
+	}
+
+	async function updateNote({ detail }) {
+		try {
+			const response = await fetch(`/api/notes/${editingNote.id}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(detail)
+			});
+
+			if (response.ok) {
+				editingNote = null;
+				await loadNotes(); // Refresh list
+			} else {
+				console.error('Failed to update note');
+			}
+		} catch (error) {
+			console.error('Error updating note:', error);
+		}
+	}
+
+	async function deleteNote({ detail: noteId }) {
+		try {
+			const response = await fetch(`/api/notes/${noteId}`, {
+				method: 'DELETE'
+			});
+
+			if (response.ok) {
+				await loadNotes(); // Refresh list
+			} else {
+				console.error('Failed to delete note');
+			}
+		} catch (error) {
+			console.error('Error deleting note:', error);
+		}
+	}
+
+	function startEditing({ detail: note }) {
+		editingNote = note;
+	}
+
+	function cancelEditing() {
+		editingNote = null;
+	}
+</script>
+
+<svelte:head>
+	<title>My Notes App</title>
+	<meta name="description" content="A simple note-taking app built with SvelteKit" />
+</svelte:head>
+
+<main>
+	<div class="container">
+		<header>
+			<h1>My Notes</h1>
+			<p>A simple note-taking application</p>
+		</header>
+
+		{#if editingNote}
+			<section>
+				<h2>Edit Note</h2>
+				<NoteForm
+					note={editingNote}
+					isEditing={true}
+					on:save={updateNote}
+					on:cancel={cancelEditing}
+				/>
+			</section>
+		{:else}
+			<section>
+				<h2>Create New Note</h2>
+				<NoteForm on:save={createNote} />
+			</section>
+		{/if}
+
+		<section>
+			<h2>Your Notes</h2>
+
+			{#if loading}
+				<p>Loading notes...</p>
+			{:else if notes.length === 0}
+				<p>No notes yet. Create your first note above!</p>
+			{:else}
+				{#each notes as note (note.id)}
+					<NoteCard {note} on:edit={startEditing} on:delete={deleteNote} />
+				{/each}
+			{/if}
+		</section>
+	</div>
+</main>
+
+<style>
+	:global(body) {
+		margin: 0;
+		padding: 0;
+		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+		background: #f7fafc;
+		line-height: 1.6;
+	}
+
+	.container {
+		max-width: 800px;
+		margin: 0 auto;
+		padding: 20px;
+	}
+
+	header {
+		text-align: center;
+		margin-bottom: 32px;
+		padding: 24px;
+		background: white;
+		border-radius: 8px;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+	}
+
+	header h1 {
+		margin: 0;
+		color: #2d3748;
+		font-size: 2.5rem;
+	}
+
+	header p {
+		margin: 8px 0 0 0;
+		color: #718096;
+		font-size: 1.1rem;
+	}
+
+	section {
+		margin-bottom: 32px;
+	}
+
+	section h2 {
+		margin-bottom: 16px;
+		color: #2d3748;
+		font-size: 1.5rem;
+	}
+</style>
+```
+
+## Building and Running
+
+### 7. Install Dependencies
+
+```bash
+# Install required dependencies
+npm install better-sqlite3
+```
+
+### 8. Package Configuration
+
+```json
+{
+	"name": "my-notes-app",
+	"version": "1.0.0",
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build",
+		"start": "./build/my-notes-app"
+	},
+	"devDependencies": {
+		"@sveltejs/adapter-auto": "^3.0.0",
+		"@sveltejs/kit": "^2.0.0",
+		"@sveltejs/vite-plugin-svelte": "^3.0.0",
+		"sveltekit-exec-adapter": "^1.0.0",
+		"svelte": "^4.2.7",
+		"vite": "^5.0.3"
+	},
+	"dependencies": {
+		"better-sqlite3": "^9.0.0"
+	}
+}
+```
+
+### 9. Build the Executable
+
+```bash
+# Build the application
+npm run build
+
+# The executable will be created at: build/my-notes-app
+```
+
+### 10. Test the Application
+
+```bash
+# Run the executable
+./build/my-notes-app
+
+# Or on Windows
+./build/my-notes-app.exe
+```
+
+The application will start on http://localhost:3000 and you can:
+
+- Create new notes
+- Edit existing notes
+- Delete notes
+- All data persists locally in SQLite
+
+## What You've Learned
+
+This example demonstrates:
+
+1. **Database Integration**: Using SQLite for local data persistence
+2. **API Routes**: Creating RESTful endpoints for CRUD operations
+3. **Component Architecture**: Building reusable Svelte components
+4. **Error Handling**: Proper error handling in both frontend and backend
+5. **Static Assets**: Embedding CSS and other static files
+6. **File System**: Storing application data in user's home directory
+
+The resulting executable is completely self-contained and requires no external dependencies to run!

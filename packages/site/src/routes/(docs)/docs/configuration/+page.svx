@@ -1,0 +1,320 @@
+---
+layout: docs
+---
+
+# Configuration
+
+Customize the SvelteKit Exec Adapter to fit your project's needs.
+
+## Basic Configuration
+
+The adapter accepts configuration options in your `svelte.config.js`:
+
+```javascript
+import adapter from 'sveltekit-exec-adapter';
+
+const config = {
+	kit: {
+		adapter: adapter({
+			// Basic options
+			out: 'build',
+			binaryName: 'my-app',
+			embedStatic: true,
+			target: 'linux-x64'
+		})
+	}
+};
+
+export default config;
+```
+
+## Configuration Options
+
+### Basic Options
+
+#### `out`
+
+- **Type:** `string`
+- **Default:** `'build'`
+- **Description:** Output directory for the build
+
+```javascript
+adapter({
+	out: 'dist' // Build output goes to ./dist/
+});
+```
+
+#### `binaryName`
+
+- **Type:** `string`
+- **Default:** `'app'`
+- **Description:** Name of the generated executable
+
+```javascript
+adapter({
+	binaryName: 'my-awesome-app' // Creates my-awesome-app(.exe)
+});
+```
+
+#### `embedStatic`
+
+- **Type:** `boolean`
+- **Default:** `true`
+- **Description:** Whether to embed static assets in the binary
+
+```javascript
+adapter({
+	embedStatic: false // Static files served from filesystem
+});
+```
+
+#### `target`
+
+- **Type:** `string`
+- **Default:** Auto-detected based on current platform
+- **Description:** Target platform for the executable
+
+**Available targets:**
+
+- `linux-x64`
+- `linux-arm64`
+- `darwin-x64` (macOS Intel)
+- `darwin-arm64` (macOS Apple Silicon)
+- `windows-x64`
+
+```javascript
+adapter({
+	target: 'linux-x64' // Build for Linux 64-bit
+});
+```
+
+#### `volume`
+
+- **Type:** `string`
+- **Default:** `'/data'`
+- **Description:** Mount point for persistent data in containers
+
+```javascript
+adapter({
+	volume: '/app/data'
+});
+```
+
+### Asset Validation Options
+
+Control how the adapter handles and validates assets during build:
+
+#### `validation.maxAssetSize`
+
+- **Type:** `number`
+- **Default:** `50 * 1024 * 1024` (50MB)
+- **Description:** Maximum size for individual assets
+
+#### `validation.maxTotalSize`
+
+- **Type:** `number`
+- **Default:** `500 * 1024 * 1024` (500MB)
+- **Description:** Maximum total size of all assets
+
+#### `validation.warnThreshold`
+
+- **Type:** `number`
+- **Default:** `10 * 1024 * 1024` (10MB)
+- **Description:** Size threshold for warnings
+
+#### `validation.blockedExtensions`
+
+- **Type:** `string[]`
+- **Default:** `['.exe', '.dll', '.so', '.dylib', '.app', '.deb', '.rpm']`
+- **Description:** File extensions that will cause build failures
+
+#### `validation.warnExtensions`
+
+- **Type:** `string[]`
+- **Default:** `['.zip', '.tar', '.gz', '.rar', '.7z', '.iso', '.dmg']`
+- **Description:** File extensions that will trigger warnings
+
+#### `validation.allowedExtensions`
+
+- **Type:** `string[]`
+- **Default:** `undefined`
+- **Description:** If provided, only these extensions are allowed
+
+#### `validation.skip`
+
+- **Type:** `boolean`
+- **Default:** `false`
+- **Description:** Skip validation entirely (not recommended)
+
+### Complete Configuration Example
+
+```javascript
+import adapter from 'sveltekit-exec-adapter';
+
+const config = {
+	kit: {
+		adapter: adapter({
+			// Basic configuration
+			out: 'dist',
+			binaryName: 'my-production-app',
+			embedStatic: true,
+			target: 'linux-x64',
+			volume: '/app/data',
+
+			// Asset validation
+			validation: {
+				maxAssetSize: 100 * 1024 * 1024, // 100MB per asset
+				maxTotalSize: 1024 * 1024 * 1024, // 1GB total
+				warnThreshold: 25 * 1024 * 1024, // Warn at 25MB
+
+				// Custom file restrictions
+				blockedExtensions: ['.exe', '.dll', '.malware'],
+				warnExtensions: ['.zip', '.large-file'],
+
+				// Allow only specific extensions
+				allowedExtensions: [
+					'.js',
+					'.css',
+					'.html',
+					'.json',
+					'.png',
+					'.jpg',
+					'.jpeg',
+					'.gif',
+					'.svg',
+					'.woff',
+					'.woff2',
+					'.ttf',
+					'.eot',
+					'.ico',
+					'.webp',
+					'.avif'
+				],
+
+				// Enable validation (recommended)
+				skip: false
+			}
+		})
+	}
+};
+
+export default config;
+```
+
+## Environment-Specific Configuration
+
+### Development
+
+```javascript
+const isDev = process.env.NODE_ENV === 'development';
+
+adapter({
+	binaryName: isDev ? 'my-app-dev' : 'my-app',
+	validation: {
+		skip: isDev // Skip validation in development
+	}
+});
+```
+
+### Production
+
+```javascript
+adapter({
+	embedStatic: true,
+	validation: {
+		maxAssetSize: 25 * 1024 * 1024, // Stricter limits for production
+		maxTotalSize: 200 * 1024 * 1024,
+		allowedExtensions: ['.js', '.css', '.png', '.svg', '.woff2']
+	}
+});
+```
+
+## Cross-Platform Building
+
+Build for multiple platforms in CI/CD:
+
+```yaml
+# .github/workflows/build.yml
+name: Build Executables
+on: [push]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux-x64
+          - os: macos-latest
+            target: darwin-x64
+          - os: windows-latest
+            target: windows-x64
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: oven-sh/setup-bun@v1
+      - run: npm ci
+      - run: npm run build
+        env:
+          TARGET: ${{ matrix.target }}
+```
+
+## Performance Optimization
+
+### Reduce Binary Size
+
+```javascript
+adapter({
+	embedStatic: false, // Serve assets from filesystem
+	validation: {
+		maxAssetSize: 5 * 1024 * 1024, // 5MB limit
+		allowedExtensions: ['.js', '.css', '.svg'] // Only essential files
+	}
+});
+```
+
+### Optimize Assets
+
+```javascript
+// Use with asset optimization tools
+adapter({
+	validation: {
+		warnThreshold: 1 * 1024 * 1024, // 1MB warning
+		blockedExtensions: ['.psd', '.ai', '.sketch'] // Block design files
+	}
+});
+```
+
+## Troubleshooting Configuration
+
+### Common Issues
+
+**Build fails with asset too large:**
+
+```javascript
+adapter({
+	validation: {
+		maxAssetSize: 100 * 1024 * 1024 // Increase limit
+	}
+});
+```
+
+**Binary too large:**
+
+```javascript
+adapter({
+	embedStatic: false, // Don't embed assets
+	validation: {
+		allowedExtensions: ['.js', '.css'] // Only essential files
+	}
+});
+```
+
+**Cross-platform issues:**
+
+```javascript
+adapter({
+	target: process.env.TARGET || 'linux-x64' // Set via environment
+});
+```

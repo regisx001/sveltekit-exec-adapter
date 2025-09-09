@@ -1,0 +1,190 @@
+---
+layout: docs
+---
+
+# Quick Start
+
+Build your first executable SvelteKit application in just a few minutes.
+
+## 1. Create a New SvelteKit Project
+
+If you don't have a SvelteKit project yet:
+
+```bash
+npm create svelte@latest my-app
+cd my-app
+npm install
+```
+
+## 2. Install the Adapter
+
+```bash
+npm install sveltekit-exec-adapter
+```
+
+## 3. Install Bun
+
+The adapter requires Bun for compilation:
+
+```bash
+curl -fsSL https://bun.sh/install | bash
+```
+
+## 4. Configure the Adapter
+
+Update your `svelte.config.js`:
+
+```javascript
+import adapter from 'sveltekit-exec-adapter';
+
+const config = {
+	kit: {
+		adapter: adapter({
+			binaryName: 'my-app',
+			embedStatic: true
+		})
+	}
+};
+
+export default config;
+```
+
+## 5. Add Some Content
+
+Create a simple API route at `src/routes/api/hello/+server.js`:
+
+```javascript
+import { json } from '@sveltejs/kit';
+
+export async function GET() {
+	return json({
+		message: 'Hello from your executable!',
+		timestamp: new Date().toISOString()
+	});
+}
+```
+
+Update your homepage at `src/routes/+page.svelte`:
+
+```svelte
+<script>
+	import { onMount } from 'svelte';
+
+	let message = '';
+	let loading = true;
+
+	onMount(async () => {
+		try {
+			const response = await fetch('/api/hello');
+			const data = await response.json();
+			message = data.message;
+		} catch (error) {
+			message = 'Error loading data';
+		} finally {
+			loading = false;
+		}
+	});
+</script>
+
+<h1>SvelteKit Exec Adapter Demo</h1>
+
+{#if loading}
+	<p>Loading...</p>
+{:else}
+	<p>{message}</p>
+{/if}
+
+<style>
+	h1 {
+		color: #ff3e00;
+		text-align: center;
+		margin: 2rem 0;
+	}
+</style>
+```
+
+## 6. Build Your Executable
+
+```bash
+npm run build
+```
+
+You should see output similar to:
+
+```
+✅ SvelteKit build completed
+📦 Embedding static assets...
+🔨 Compiling executable with Bun...
+✅ Executable created: build/my-app
+```
+
+## 7. Run Your Application
+
+### Linux/macOS
+
+```bash
+./build/my-app
+```
+
+### Windows
+
+```cmd
+.\build\my-app.exe
+```
+
+Your application will start and display:
+
+```
+🚀 Server running on http://localhost:3000
+```
+
+## 8. Test Your Executable
+
+Open your browser to `http://localhost:3000` and you should see:
+
+- Your SvelteKit application running
+- The message "Hello from your executable!" loaded from the API
+- All functionality working as a single binary
+
+## What Just Happened?
+
+You've successfully created a **single executable file** that contains:
+
+- ✅ Your entire SvelteKit application
+- ✅ The Bun runtime
+- ✅ All static assets
+- ✅ API routes and server-side functionality
+- ✅ Zero external dependencies
+
+## Next Steps
+
+Now that you have a working executable:
+
+1. **[Configuration](/docs/configuration)** - Customize build options
+2. **[Examples](/docs/examples/basic)** - See more complex examples
+3. **[Build Process](/docs/build-process)** - Understand how it works
+
+## Common Use Cases
+
+### Desktop Application
+
+Your executable can be distributed as a desktop app that users can run directly.
+
+### Server Deployment
+
+Upload the single binary to any server and run it without Docker or Node.js.
+
+### CI/CD Integration
+
+Build executables in your CI pipeline for different platforms.
+
+### Commercial Software
+
+Sell your SvelteKit app as downloadable software.
+
+## Tips for Success
+
+- **Keep assets small** - Large files increase binary size
+- **Test thoroughly** - Ensure all features work in the executable
+- **Plan for updates** - Consider how you'll distribute new versions
+- **Monitor performance** - Binary startup time vs. traditional deployment

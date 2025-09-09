@@ -1,0 +1,587 @@
+---
+layout: docs
+---
+
+# Advanced Usage
+
+Master advanced techniques for building production-ready executables with the SvelteKit Exec Adapter.
+
+## Production Optimizations
+
+### Binary Size Optimization
+
+**Strategic asset management:**
+
+```javascript
+// svelte.config.js
+adapter({
+	// Only embed critical assets
+	embedStatic: {
+		include: ['favicon.ico', 'app.css', 'critical.js'],
+		exclude: ['*.mp4', '*.zip', 'docs/**']
+	},
+
+	// Optimize compression
+	compression: {
+		level: 9, // Maximum compression
+		algorithm: 'brotli'
+	}
+});
+```
+
+**Code splitting for executables:**
+
+```javascript
+// Load heavy features on demand
+const HeavyComponent = lazy(() => import('./HeavyComponent.svelte'));
+
+// Conditionally include features
+if (process.env.INCLUDE_ADMIN) {
+	const AdminPanel = await import('./AdminPanel.js');
+}
+```
+
+### Runtime Performance
+
+**Memory management:**
+
+```javascript
+// +hooks.server.js
+export async function handle({ event, resolve }) {
+	// Force garbage collection periodically
+	if (global.gc && Date.now() % 60000 < 1000) {
+		global.gc();
+	}
+
+	return resolve(event);
+}
+```
+
+**Caching strategies:**
+
+```javascript
+// In-memory caching for embedded assets
+const assetCache = new Map();
+
+export function getCachedAsset(path) {
+	if (!assetCache.has(path)) {
+		assetCache.set(path, loadEmbeddedAsset(path));
+	}
+	return assetCache.get(path);
+}
+```
+
+## Cross-Platform Deployment
+
+### Platform-Specific Builds
+
+```javascript
+// build-config.js
+export const platforms = {
+	linux: {
+		target: 'linux-x64',
+		compression: true,
+		features: ['systemd-integration']
+	},
+	windows: {
+		target: 'windows-x64',
+		compression: false, // Windows Defender issues
+		features: ['windows-service']
+	},
+	macos: {
+		target: 'darwin-arm64',
+		signing: true,
+		features: ['app-bundle']
+	}
+};
+```
+
+**Automated multi-platform builds:**
+
+```bash
+#!/bin/bash
+# build-all.sh
+
+platforms=("linux-x64" "darwin-x64" "darwin-arm64" "windows-x64")
+
+for platform in "${platforms[@]}"; do
+	echo "Building for $platform..."
+	TARGET="$platform" npm run build
+	mv build/app "build/app-$platform"
+done
+```
+
+### Platform Detection at Runtime
+
+```javascript
+// src/lib/platform.js
+export function getPlatform() {
+	if (process.platform === 'win32') return 'windows';
+	if (process.platform === 'darwin') return 'macos';
+	if (process.platform === 'linux') return 'linux';
+	return 'unknown';
+}
+
+// Platform-specific features
+export const features = {
+	windows: {
+		autoStart: () => import('./windows/autostart.js'),
+		trayIcon: () => import('./windows/tray.js')
+	},
+	linux: {
+		systemService: () => import('./linux/service.js'),
+		notifications: () => import('./linux/notify.js')
+	}
+};
+```
+
+## Custom Middleware Integration
+
+### Database Integration
+
+**SQLite with persistent storage:**
+
+```javascript
+// src/lib/database.js
+import Database from 'better-sqlite3';
+import { join } from 'path';
+import { homedir } from 'os';
+
+// Store database in user's home directory
+const dbPath = join(homedir(), '.myapp', 'data.db');
+
+export const db = new Database(dbPath);
+
+// Initialize schema
+db.exec(`
+	CREATE TABLE IF NOT EXISTS users (
+		id INTEGER PRIMARY KEY,
+		email TEXT UNIQUE,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	)
+`);
+```
+
+**API routes with database:**
+
+```javascript
+// src/routes/api/users/+server.js
+import { db } from '$lib/database.js';
+import { json } from '@sveltejs/kit';
+
+export async function GET() {
+	const users = db.prepare('SELECT * FROM users').all();
+	return json(users);
+}
+
+export async function POST({ request }) {
+	const { email } = await request.json();
+
+	try {
+		const stmt = db.prepare('INSERT INTO users (email) VALUES (?)');
+		const result = stmt.run(email);
+		return json({ id: result.lastInsertRowid });
+	} catch (error) {
+		return json({ error: 'Email already exists' }, { status: 400 });
+	}
+}
+```
+
+### File System Operations
+
+**Safe file handling:**
+
+```javascript
+// src/lib/files.js
+import { access, readFile, writeFile, mkdir } from 'fs/promises';
+import { join, dirname } from 'path';
+import { homedir } from 'os';
+
+export class AppFileSystem {
+	constructor(appName) {
+		this.appDir = join(homedir(), `.${appName}`);
+		this.ensureAppDir();
+	}
+
+	async ensureAppDir() {
+		try {
+			await access(this.appDir);
+		} catch {
+			await mkdir(this.appDir, { recursive: true });
+		}
+	}
+
+	async readUserFile(filename) {
+		const filepath = join(this.appDir, filename);
+		try {
+			return await readFile(filepath, 'utf8');
+		} catch {
+			return null;
+		}
+	}
+
+	async writeUserFile(filename, content) {
+		const filepath = join(this.appDir, filename);
+		await mkdir(dirname(filepath), { recursive: true });
+		await writeFile(filepath, content, 'utf8');
+	}
+}
+```
+
+### External Process Management
+
+**Running system commands:**
+
+```javascript
+// src/lib/processes.js
+import { spawn } from 'child_process';
+
+export function runCommand(command, args = []) {
+	return new Promise((resolve, reject) => {
+		const process = spawn(command, args, {
+			stdio: ['inherit', 'pipe', 'pipe']
+		});
+
+		let stdout = '';
+		let stderr = '';
+
+		process.stdout.on('data', (data) => {
+			stdout += data.toString();
+		});
+
+		process.stderr.on('data', (data) => {
+			stderr += data.toString();
+		});
+
+		process.on('close', (code) => {
+			if (code === 0) {
+				resolve({ stdout, stderr });
+			} else {
+				reject(new Error(`Command failed with code ${code}: ${stderr}`));
+			}
+		});
+	});
+}
+```
+
+## Security Considerations
+
+### Input Validation
+
+**Comprehensive validation middleware:**
+
+```javascript
+// src/hooks.server.js
+import { z } from 'zod';
+
+const schemas = {
+	'/api/users': z.object({
+		email: z.string().email(),
+		name: z.string().min(1).max(100)
+	}),
+	'/api/files': z.object({
+		filename: z.string().regex(/^[a-zA-Z0-9._-]+$/),
+		content: z.string().max(1024 * 1024) // 1MB limit
+	})
+};
+
+export async function handle({ event, resolve }) {
+	// Validate API requests
+	if (event.url.pathname.startsWith('/api/')) {
+		const schema = schemas[event.url.pathname];
+		if (schema && event.request.method === 'POST') {
+			try {
+				const body = await event.request.json();
+				schema.parse(body);
+
+				// Re-create request with validated body
+				event.request = new Request(event.url, {
+					method: event.request.method,
+					headers: event.request.headers,
+					body: JSON.stringify(body)
+				});
+			} catch (error) {
+				return new Response(JSON.stringify({ error: 'Invalid input' }), { status: 400 });
+			}
+		}
+	}
+
+	return resolve(event);
+}
+```
+
+### Safe Configuration Management
+
+**Environment-aware configuration:**
+
+```javascript
+// src/lib/config.js
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+class Config {
+	constructor() {
+		this.config = this.loadConfig();
+		this.validateConfig();
+	}
+
+	loadConfig() {
+		// Try multiple config sources
+		const sources = [
+			process.env, // Environment variables
+			this.loadFileConfig('.env'),
+			this.loadFileConfig('config.json'),
+			this.getDefaultConfig()
+		];
+
+		return Object.assign({}, ...sources);
+	}
+
+	loadFileConfig(filename) {
+		try {
+			const content = readFileSync(filename, 'utf8');
+			return filename.endsWith('.json') ? JSON.parse(content) : this.parseEnvFile(content);
+		} catch {
+			return {};
+		}
+	}
+
+	parseEnvFile(content) {
+		const config = {};
+		content.split('\n').forEach((line) => {
+			const [key, value] = line.split('=');
+			if (key && value) {
+				config[key.trim()] = value.trim();
+			}
+		});
+		return config;
+	}
+
+	validateConfig() {
+		const required = ['DATABASE_PATH', 'SECRET_KEY'];
+		const missing = required.filter((key) => !this.config[key]);
+
+		if (missing.length > 0) {
+			throw new Error(`Missing required config: ${missing.join(', ')}`);
+		}
+	}
+
+	get(key, defaultValue = null) {
+		return this.config[key] ?? defaultValue;
+	}
+}
+
+export const config = new Config();
+```
+
+## Integration Patterns
+
+### Plugin System
+
+**Dynamic plugin loading:**
+
+```javascript
+// src/lib/plugins.js
+import { readdir } from 'fs/promises';
+import { join } from 'path';
+
+export class PluginManager {
+	constructor() {
+		this.plugins = new Map();
+		this.hooks = new Map();
+	}
+
+	async loadPlugins(pluginDir) {
+		try {
+			const files = await readdir(pluginDir);
+
+			for (const file of files) {
+				if (file.endsWith('.js')) {
+					const pluginPath = join(pluginDir, file);
+					const plugin = await import(pluginPath);
+					this.registerPlugin(plugin.default);
+				}
+			}
+		} catch (error) {
+			console.warn('No plugins directory found:', error.message);
+		}
+	}
+
+	registerPlugin(plugin) {
+		if (!plugin.name || !plugin.version) {
+			throw new Error('Plugin must have name and version');
+		}
+
+		this.plugins.set(plugin.name, plugin);
+
+		// Register plugin hooks
+		if (plugin.hooks) {
+			Object.entries(plugin.hooks).forEach(([hook, handler]) => {
+				this.addHook(hook, handler);
+			});
+		}
+
+		// Initialize plugin
+		if (plugin.init) {
+			plugin.init();
+		}
+	}
+
+	addHook(name, handler) {
+		if (!this.hooks.has(name)) {
+			this.hooks.set(name, []);
+		}
+		this.hooks.get(name).push(handler);
+	}
+
+	async runHook(name, data) {
+		const handlers = this.hooks.get(name) || [];
+
+		for (const handler of handlers) {
+			try {
+				data = await handler(data);
+			} catch (error) {
+				console.error(`Plugin hook ${name} failed:`, error);
+			}
+		}
+
+		return data;
+	}
+}
+```
+
+### Event System
+
+**Application-wide event handling:**
+
+```javascript
+// src/lib/events.js
+import { EventEmitter } from 'events';
+
+class AppEvents extends EventEmitter {
+	constructor() {
+		super();
+		this.setMaxListeners(100); // Prevent memory leaks
+	}
+
+	// Typed event methods
+	user = {
+		created: (user) => this.emit('user:created', user),
+		updated: (user) => this.emit('user:updated', user),
+		deleted: (id) => this.emit('user:deleted', id)
+	};
+
+	system = {
+		startup: () => this.emit('system:startup'),
+		shutdown: () => this.emit('system:shutdown'),
+		error: (error) => this.emit('system:error', error)
+	};
+}
+
+export const events = new AppEvents();
+
+// Usage in components
+events.on('user:created', (user) => {
+	console.log('New user registered:', user.email);
+});
+```
+
+## Monitoring and Debugging
+
+### Health Checks
+
+**Built-in health monitoring:**
+
+```javascript
+// src/routes/health/+server.js
+import { json } from '@sveltejs/kit';
+import { db } from '$lib/database.js';
+
+export async function GET() {
+	const health = {
+		status: 'ok',
+		timestamp: new Date().toISOString(),
+		uptime: process.uptime(),
+		memory: process.memoryUsage(),
+		version: process.env.npm_package_version,
+		checks: {}
+	};
+
+	// Database health
+	try {
+		db.prepare('SELECT 1').get();
+		health.checks.database = 'ok';
+	} catch (error) {
+		health.checks.database = 'error';
+		health.status = 'error';
+	}
+
+	// File system health
+	try {
+		await access('./static');
+		health.checks.filesystem = 'ok';
+	} catch (error) {
+		health.checks.filesystem = 'error';
+		health.status = 'warning';
+	}
+
+	return json(health);
+}
+```
+
+### Application Logging
+
+**Structured logging system:**
+
+```javascript
+// src/lib/logger.js
+import { writeFileSync, appendFileSync } from 'fs';
+import { join } from 'path';
+
+export class Logger {
+	constructor(options = {}) {
+		this.level = options.level || 'info';
+		this.logFile = options.file || join(process.cwd(), 'app.log');
+		this.console = options.console !== false;
+	}
+
+	log(level, message, meta = {}) {
+		const timestamp = new Date().toISOString();
+		const entry = {
+			timestamp,
+			level,
+			message,
+			...meta
+		};
+
+		const formatted = JSON.stringify(entry);
+
+		if (this.console) {
+			console.log(formatted);
+		}
+
+		try {
+			appendFileSync(this.logFile, formatted + '\n');
+		} catch (error) {
+			console.error('Failed to write log:', error);
+		}
+	}
+
+	info(message, meta) {
+		this.log('info', message, meta);
+	}
+	warn(message, meta) {
+		this.log('warn', message, meta);
+	}
+	error(message, meta) {
+		this.log('error', message, meta);
+	}
+	debug(message, meta) {
+		this.log('debug', message, meta);
+	}
+}
+
+export const logger = new Logger();
+```
+
+These advanced patterns enable you to build sophisticated, production-ready applications while maintaining the benefits of a single executable deployment model.

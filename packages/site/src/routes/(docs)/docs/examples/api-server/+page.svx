@@ -1,0 +1,864 @@
+---
+layout: docs
+---
+
+# API Server Example
+
+Build a standalone REST API server with OpenAPI documentation, rate limiting, and monitoring.
+
+## Project Overview
+
+This example creates a comprehensive API server featuring:
+
+- RESTful API endpoints with OpenAPI/Swagger documentation
+- Rate limiting and request validation
+- Health monitoring and metrics
+- Database with migrations
+- CORS and security headers
+- Request logging and error handling
+
+## Initial Setup
+
+```bash
+# Create API-focused SvelteKit project
+npm create svelte@latest api-server
+cd api-server
+npm install
+
+# Install dependencies
+npm install -D sveltekit-exec-adapter
+npm install better-sqlite3 cors helmet express-rate-limit joi swagger-jsdoc swagger-ui-dist
+```
+
+## Database & Models
+
+### 1. Database Setup with Migrations
+
+```javascript
+// src/lib/database.js
+import Database from 'better-sqlite3';
+import { join } from 'path';
+import { homedir } from 'os';
+import { mkdirSync, existsSync, readFileSync, readdirSync } from 'fs';
+
+const appDir = join(homedir(), '.api-server');
+if (!existsSync(appDir)) {
+	mkdirSync(appDir, { recursive: true });
+}
+
+const dbPath = join(appDir, 'api.db');
+export const db = new Database(dbPath);
+
+// Enable foreign keys
+db.pragma('foreign_keys = ON');
+
+class Migration {
+	constructor() {
+		this.createMigrationsTable();
+		this.runPendingMigrations();
+	}
+
+	createMigrationsTable() {
+		db.exec(`
+			CREATE TABLE IF NOT EXISTS migrations (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				filename TEXT UNIQUE NOT NULL,
+				executed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			)
+		`);
+	}
+
+	runPendingMigrations() {
+		const migrationsDir = join(process.cwd(), 'migrations');
+		if (!existsSync(migrationsDir)) return;
+
+		const executedMigrations = db.prepare('SELECT filename FROM migrations').all();
+		const executedSet = new Set(executedMigrations.map((m) => m.filename));
+
+		const migrationFiles = readdirSync(migrationsDir)
+			.filter((file) => file.endsWith('.sql'))
+			.sort();
+
+		for (const file of migrationFiles) {
+			if (!executedSet.has(file)) {
+				console.log(`Running migration: ${file}`);
+				const sql = readFileSync(join(migrationsDir, file), 'utf8');
+
+				try {
+					db.exec(sql);
+					db.prepare('INSERT INTO migrations (filename) VALUES (?)').run(file);
+					console.log(`✅ Migration ${file} completed`);
+				} catch (error) {
+					console.error(`❌ Migration ${file} failed:`, error);
+					throw error;
+				}
+			}
+		}
+	}
+}
+
+// Run migrations
+new Migration();
+
+// API queries
+export const queries = {
+	// Users
+	createUser: db.prepare('INSERT INTO users (name, email, status) VALUES (?, ?, ?)'),
+	getAllUsers: db.prepare('SELECT * FROM users ORDER BY created_at DESC LIMIT ? OFFSET ?'),
+	getUserById: db.prepare('SELECT * FROM users WHERE id = ?'),
+	updateUser: db.prepare(
+		'UPDATE users SET name = ?, email = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+	),
+	deleteUser: db.prepare('DELETE FROM users WHERE id = ?'),
+	getUsersCount: db.prepare('SELECT COUNT(*) as count FROM users'),
+
+	// Posts
+	createPost: db.prepare('INSERT INTO posts (user_id, title, content, status) VALUES (?, ?, ?, ?)'),
+	getAllPosts: db.prepare(
+		'SELECT p.*, u.name as author_name FROM posts p LEFT JOIN users u ON p.user_id = u.id ORDER BY p.created_at DESC LIMIT ? OFFSET ?'
+	),
+	getPostById: db.prepare(
+		'SELECT p.*, u.name as author_name FROM posts p LEFT JOIN users u ON p.user_id = u.id WHERE p.id = ?'
+	),
+	getUserPosts: db.prepare('SELECT * FROM posts WHERE user_id = ? ORDER BY created_at DESC'),
+	updatePost: db.prepare(
+		'UPDATE posts SET title = ?, content = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+	),
+	deletePost: db.prepare('DELETE FROM posts WHERE id = ?'),
+	getPostsCount: db.prepare('SELECT COUNT(*) as count FROM posts'),
+
+	// API Keys
+	createApiKey: db.prepare('INSERT INTO api_keys (key_hash, name, permissions) VALUES (?, ?, ?)'),
+	getApiKey: db.prepare('SELECT * FROM api_keys WHERE key_hash = ? AND active = 1'),
+	updateApiKeyUsage: db.prepare(
+		'UPDATE api_keys SET last_used = CURRENT_TIMESTAMP, usage_count = usage_count + 1 WHERE id = ?'
+	)
+};
+```
+
+### 2. Database Migrations
+
+```sql
+-- migrations/001_initial_schema.sql
+CREATE TABLE users (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	name TEXT NOT NULL,
+	email TEXT UNIQUE NOT NULL,
+	status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'suspended')),
+	created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+	updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE posts (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	user_id INTEGER NOT NULL,
+	title TEXT NOT NULL,
+	content TEXT NOT NULL,
+	status TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'archived')),
+	created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+	updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+	FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+);
+
+CREATE TABLE api_keys (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	key_hash TEXT UNIQUE NOT NULL,
+	name TEXT NOT NULL,
+	permissions TEXT NOT NULL, -- JSON string
+	active INTEGER DEFAULT 1,
+	usage_count INTEGER DEFAULT 0,
+	last_used DATETIME,
+	created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_posts_user_id ON posts(user_id);
+CREATE INDEX idx_posts_status ON posts(status);
+CREATE INDEX idx_api_keys_hash ON api_keys(key_hash);
+```
+
+## Validation & Middleware
+
+### 3. Request Validation
+
+```javascript
+// src/lib/validation.js
+import Joi from 'joi';
+
+export const schemas = {
+	user: {
+		create: Joi.object({
+			name: Joi.string().min(2).max(100).required(),
+			email: Joi.string().email().required(),
+			status: Joi.string().valid('active', 'inactive', 'suspended').default('active')
+		}),
+		update: Joi.object({
+			name: Joi.string().min(2).max(100),
+			email: Joi.string().email(),
+			status: Joi.string().valid('active', 'inactive', 'suspended')
+		}).min(1)
+	},
+
+	post: {
+		create: Joi.object({
+			title: Joi.string().min(1).max(200).required(),
+			content: Joi.string().min(1).required(),
+			status: Joi.string().valid('draft', 'published', 'archived').default('draft')
+		}),
+		update: Joi.object({
+			title: Joi.string().min(1).max(200),
+			content: Joi.string().min(1),
+			status: Joi.string().valid('draft', 'published', 'archived')
+		}).min(1)
+	},
+
+	pagination: Joi.object({
+		page: Joi.number().integer().min(1).default(1),
+		limit: Joi.number().integer().min(1).max(100).default(20)
+	})
+};
+
+export function validateRequest(schema, data) {
+	const { error, value } = schema.validate(data, { abortEarly: false });
+
+	if (error) {
+		const details = error.details.map((detail) => ({
+			field: detail.path.join('.'),
+			message: detail.message
+		}));
+
+		throw {
+			status: 400,
+			message: 'Validation failed',
+			details
+		};
+	}
+
+	return value;
+}
+```
+
+### 4. Rate Limiting & Security
+
+```javascript
+// src/lib/middleware.js
+import crypto from 'crypto';
+import { queries } from './database.js';
+
+// Rate limiting store
+const rateLimitStore = new Map();
+
+export class RateLimit {
+	constructor(windowMs = 900000, maxRequests = 100) {
+		// 15 minutes, 100 requests
+		this.windowMs = windowMs;
+		this.maxRequests = maxRequests;
+	}
+
+	check(identifier) {
+		const now = Date.now();
+		const windowStart = now - this.windowMs;
+
+		// Clean old entries
+		for (const [key, data] of rateLimitStore.entries()) {
+			if (data.resetTime < now) {
+				rateLimitStore.delete(key);
+			}
+		}
+
+		// Get current usage
+		const current = rateLimitStore.get(identifier) || {
+			count: 0,
+			resetTime: now + this.windowMs
+		};
+
+		// Check if limit exceeded
+		if (current.count >= this.maxRequests) {
+			return {
+				allowed: false,
+				remaining: 0,
+				resetTime: current.resetTime
+			};
+		}
+
+		// Increment and store
+		current.count++;
+		rateLimitStore.set(identifier, current);
+
+		return {
+			allowed: true,
+			remaining: this.maxRequests - current.count,
+			resetTime: current.resetTime
+		};
+	}
+}
+
+export class ApiKeyAuth {
+	static generateKey() {
+		return crypto.randomBytes(32).toString('hex');
+	}
+
+	static hashKey(key) {
+		return crypto.createHash('sha256').update(key).digest('hex');
+	}
+
+	static async validateKey(authHeader) {
+		if (!authHeader || !authHeader.startsWith('Bearer ')) {
+			return null;
+		}
+
+		const key = authHeader.substring(7);
+		const keyHash = this.hashKey(key);
+
+		const apiKey = queries.getApiKey.get(keyHash);
+		if (!apiKey) return null;
+
+		// Update usage
+		queries.updateApiKeyUsage.run(apiKey.id);
+
+		return {
+			id: apiKey.id,
+			name: apiKey.name,
+			permissions: JSON.parse(apiKey.permissions)
+		};
+	}
+}
+
+// Security headers
+export const securityHeaders = {
+	'X-Content-Type-Options': 'nosniff',
+	'X-Frame-Options': 'DENY',
+	'X-XSS-Protection': '1; mode=block',
+	'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+	'Content-Security-Policy': "default-src 'self'"
+};
+```
+
+## API Endpoints
+
+### 5. Users API
+
+```javascript
+// src/routes/api/v1/users/+server.js
+import { json } from '@sveltejs/kit';
+import { queries } from '$lib/database.js';
+import { validateRequest, schemas } from '$lib/validation.js';
+import { RateLimit, securityHeaders } from '$lib/middleware.js';
+
+const rateLimit = new RateLimit();
+
+export async function GET({ url, request }) {
+	// Rate limiting
+	const clientIP = request.headers.get('x-forwarded-for') || 'unknown';
+	const rateLimitResult = rateLimit.check(clientIP);
+
+	if (!rateLimitResult.allowed) {
+		return json(
+			{ error: 'Rate limit exceeded' },
+			{
+				status: 429,
+				headers: {
+					...securityHeaders,
+					'X-RateLimit-Remaining': '0',
+					'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+				}
+			}
+		);
+	}
+
+	try {
+		// Validate pagination parameters
+		const page = parseInt(url.searchParams.get('page')) || 1;
+		const limit = parseInt(url.searchParams.get('limit')) || 20;
+
+		const validatedParams = validateRequest(schemas.pagination, { page, limit });
+
+		const offset = (validatedParams.page - 1) * validatedParams.limit;
+		const users = queries.getAllUsers.all(validatedParams.limit, offset);
+		const total = queries.getUsersCount.get().count;
+
+		const response = {
+			data: users,
+			pagination: {
+				page: validatedParams.page,
+				limit: validatedParams.limit,
+				total,
+				pages: Math.ceil(total / validatedParams.limit)
+			}
+		};
+
+		return json(response, {
+			headers: {
+				...securityHeaders,
+				'X-RateLimit-Remaining': rateLimitResult.remaining.toString()
+			}
+		});
+	} catch (error) {
+		if (error.status) {
+			return json({ error: error.message, details: error.details }, { status: error.status });
+		}
+
+		console.error('GET /api/v1/users error:', error);
+		return json({ error: 'Internal server error' }, { status: 500 });
+	}
+}
+
+export async function POST({ request }) {
+	try {
+		const data = await request.json();
+		const validatedData = validateRequest(schemas.user.create, data);
+
+		const result = queries.createUser.run(
+			validatedData.name,
+			validatedData.email,
+			validatedData.status
+		);
+
+		const user = queries.getUserById.get(result.lastInsertRowid);
+
+		return json(user, {
+			status: 201,
+			headers: securityHeaders
+		});
+	} catch (error) {
+		if (error.status) {
+			return json({ error: error.message, details: error.details }, { status: error.status });
+		}
+
+		if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+			return json({ error: 'Email already exists' }, { status: 409 });
+		}
+
+		console.error('POST /api/v1/users error:', error);
+		return json({ error: 'Internal server error' }, { status: 500 });
+	}
+}
+```
+
+### 6. Posts API with Relationships
+
+```javascript
+// src/routes/api/v1/posts/+server.js
+import { json } from '@sveltejs/kit';
+import { queries } from '$lib/database.js';
+import { validateRequest, schemas } from '$lib/validation.js';
+import { securityHeaders } from '$lib/middleware.js';
+
+export async function GET({ url }) {
+	try {
+		const page = parseInt(url.searchParams.get('page')) || 1;
+		const limit = parseInt(url.searchParams.get('limit')) || 20;
+		const userId = url.searchParams.get('user_id');
+
+		const validatedParams = validateRequest(schemas.pagination, { page, limit });
+
+		const offset = (validatedParams.page - 1) * validatedParams.limit;
+		let posts, total;
+
+		if (userId) {
+			posts = queries.getUserPosts.all(userId);
+			total = posts.length;
+			posts = posts.slice(offset, offset + validatedParams.limit);
+		} else {
+			posts = queries.getAllPosts.all(validatedParams.limit, offset);
+			total = queries.getPostsCount.get().count;
+		}
+
+		const response = {
+			data: posts,
+			pagination: {
+				page: validatedParams.page,
+				limit: validatedParams.limit,
+				total,
+				pages: Math.ceil(total / validatedParams.limit)
+			}
+		};
+
+		return json(response, { headers: securityHeaders });
+	} catch (error) {
+		console.error('GET /api/v1/posts error:', error);
+		return json({ error: 'Internal server error' }, { status: 500 });
+	}
+}
+
+export async function POST({ request }) {
+	try {
+		const data = await request.json();
+
+		// Validate post data
+		const validatedData = validateRequest(schemas.post.create, data);
+
+		// Check if user exists
+		if (data.user_id) {
+			const user = queries.getUserById.get(data.user_id);
+			if (!user) {
+				return json({ error: 'User not found' }, { status: 404 });
+			}
+		} else {
+			return json({ error: 'user_id is required' }, { status: 400 });
+		}
+
+		const result = queries.createPost.run(
+			data.user_id,
+			validatedData.title,
+			validatedData.content,
+			validatedData.status
+		);
+
+		const post = queries.getPostById.get(result.lastInsertRowid);
+
+		return json(post, {
+			status: 201,
+			headers: securityHeaders
+		});
+	} catch (error) {
+		if (error.status) {
+			return json({ error: error.message, details: error.details }, { status: error.status });
+		}
+
+		console.error('POST /api/v1/posts error:', error);
+		return json({ error: 'Internal server error' }, { status: 500 });
+	}
+}
+```
+
+## API Documentation
+
+### 7. OpenAPI/Swagger Documentation
+
+```javascript
+// src/routes/api/docs/+server.js
+import { json } from '@sveltejs/kit';
+import swaggerJSDoc from 'swagger-jsdoc';
+
+const options = {
+	definition: {
+		openapi: '3.0.0',
+		info: {
+			title: 'API Server',
+			version: '1.0.0',
+			description: 'A comprehensive REST API built with SvelteKit',
+			contact: {
+				name: 'API Support',
+				email: 'support@example.com'
+			}
+		},
+		servers: [
+			{
+				url: 'http://localhost:3000/api/v1',
+				description: 'Development server'
+			}
+		],
+		components: {
+			securitySchemes: {
+				bearerAuth: {
+					type: 'http',
+					scheme: 'bearer',
+					bearerFormat: 'JWT'
+				}
+			},
+			schemas: {
+				User: {
+					type: 'object',
+					properties: {
+						id: { type: 'integer', example: 1 },
+						name: { type: 'string', example: 'John Doe' },
+						email: { type: 'string', format: 'email', example: 'john@example.com' },
+						status: { type: 'string', enum: ['active', 'inactive', 'suspended'] },
+						created_at: { type: 'string', format: 'date-time' },
+						updated_at: { type: 'string', format: 'date-time' }
+					}
+				},
+				Post: {
+					type: 'object',
+					properties: {
+						id: { type: 'integer', example: 1 },
+						user_id: { type: 'integer', example: 1 },
+						title: { type: 'string', example: 'My First Post' },
+						content: { type: 'string', example: 'This is the content of my post...' },
+						status: { type: 'string', enum: ['draft', 'published', 'archived'] },
+						author_name: { type: 'string', example: 'John Doe' },
+						created_at: { type: 'string', format: 'date-time' },
+						updated_at: { type: 'string', format: 'date-time' }
+					}
+				},
+				Error: {
+					type: 'object',
+					properties: {
+						error: { type: 'string' },
+						details: {
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {
+									field: { type: 'string' },
+									message: { type: 'string' }
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	},
+	apis: ['./src/routes/api/v1/**/*.js'] // Paths to files containing OpenAPI definitions
+};
+
+const specs = swaggerJSDoc(options);
+
+export async function GET() {
+	return json(specs);
+}
+```
+
+### 8. Interactive Documentation UI
+
+```svelte
+<!-- src/routes/docs/+page.svelte -->
+<script>
+	import { onMount } from 'svelte';
+
+	let swaggerContainer;
+
+	onMount(async () => {
+		// Dynamically import Swagger UI
+		const SwaggerUI = await import('swagger-ui-dist/swagger-ui-bundle.js');
+
+		SwaggerUI.default({
+			url: '/api/docs',
+			dom_id: '#swagger-ui',
+			presets: [SwaggerUI.default.presets.apis, SwaggerUI.default.presets.standalone],
+			layout: 'StandaloneLayout',
+			deepLinking: true,
+			showExtensions: true,
+			showCommonExtensions: true
+		});
+	});
+</script>
+
+<svelte:head>
+	<title>API Documentation</title>
+	<link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@4.15.5/swagger-ui.css" />
+</svelte:head>
+
+<div id="swagger-ui"></div>
+
+<style>
+	:global(body) {
+		margin: 0;
+	}
+</style>
+```
+
+## Monitoring & Health Checks
+
+### 9. Health and Metrics Endpoints
+
+```javascript
+// src/routes/api/health/+server.js
+import { json } from '@sveltejs/kit';
+import { db, queries } from '$lib/database.js';
+
+export async function GET() {
+	const health = {
+		status: 'ok',
+		timestamp: new Date().toISOString(),
+		version: '1.0.0',
+		uptime: process.uptime(),
+		memory: process.memoryUsage(),
+		checks: {}
+	};
+
+	// Database health check
+	try {
+		db.prepare('SELECT 1').get();
+		health.checks.database = { status: 'ok', responseTime: Date.now() };
+	} catch (error) {
+		health.checks.database = { status: 'error', error: error.message };
+		health.status = 'error';
+	}
+
+	// Check database record counts
+	try {
+		const userCount = queries.getUsersCount.get().count;
+		const postCount = queries.getPostsCount.get().count;
+
+		health.checks.data = {
+			status: 'ok',
+			users: userCount,
+			posts: postCount
+		};
+	} catch (error) {
+		health.checks.data = { status: 'error', error: error.message };
+	}
+
+	return json(health);
+}
+```
+
+### 10. Request Logging Middleware
+
+```javascript
+// src/hooks.server.js
+import { sequence } from '@sveltejs/kit/hooks';
+
+// Request logging
+async function requestLogger({ event, resolve }) {
+	const start = Date.now();
+	const { pathname, search } = event.url;
+	const method = event.request.method;
+	const userAgent = event.request.headers.get('user-agent') || '';
+	const clientIP = event.request.headers.get('x-forwarded-for') || event.getClientAddress();
+
+	// Skip logging for static assets
+	if (pathname.startsWith('/_app/') || pathname.startsWith('/favicon')) {
+		return resolve(event);
+	}
+
+	console.log(`→ ${method} ${pathname}${search} [${clientIP}]`);
+
+	const response = await resolve(event);
+
+	const duration = Date.now() - start;
+	const status = response.status;
+	const size = response.headers.get('content-length') || '-';
+
+	console.log(`← ${method} ${pathname} ${status} ${size}b ${duration}ms`);
+
+	return response;
+}
+
+// CORS handling
+async function corsHandler({ event, resolve }) {
+	const response = await resolve(event);
+
+	// Add CORS headers for API routes
+	if (event.url.pathname.startsWith('/api/')) {
+		response.headers.set('Access-Control-Allow-Origin', '*');
+		response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+		response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+	}
+
+	return response;
+}
+
+// Handle OPTIONS requests
+async function optionsHandler({ event, resolve }) {
+	if (event.request.method === 'OPTIONS') {
+		return new Response(null, {
+			status: 200,
+			headers: {
+				'Access-Control-Allow-Origin': '*',
+				'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+				'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+			}
+		});
+	}
+
+	return resolve(event);
+}
+
+export const handle = sequence(requestLogger, corsHandler, optionsHandler);
+```
+
+## Build Configuration
+
+### 11. Production Configuration
+
+```javascript
+// svelte.config.js
+import adapter from 'sveltekit-exec-adapter';
+
+const config = {
+	kit: {
+		adapter: adapter({
+			embedStatic: false, // Serve from filesystem for API server
+			validation: {
+				maxAssetSize: 1024 * 1024, // 1MB max for docs assets
+				allowedExtensions: ['.css', '.js', '.ico', '.svg']
+			}
+		}),
+		prerender: {
+			entries: ['/docs'] // Pre-render documentation page
+		}
+	}
+};
+
+export default config;
+```
+
+### 12. Docker Support (Optional)
+
+```dockerfile
+# Dockerfile
+FROM ubuntu:22.04
+
+WORKDIR /app
+
+# Copy the executable
+COPY build/api-server /app/api-server
+
+# Make executable
+RUN chmod +x /app/api-server
+
+# Expose port
+EXPOSE 3000
+
+# Create app user
+RUN useradd -m -s /bin/bash apiuser
+USER apiuser
+
+# Run the application
+CMD ["./api-server"]
+```
+
+## Testing the API
+
+### 13. Sample API Calls
+
+```bash
+# Create a user
+curl -X POST http://localhost:3000/api/v1/users \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "John Doe",
+    "email": "john@example.com",
+    "status": "active"
+  }'
+
+# Get users with pagination
+curl "http://localhost:3000/api/v1/users?page=1&limit=10"
+
+# Create a post
+curl -X POST http://localhost:3000/api/v1/posts \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": 1,
+    "title": "My First Post",
+    "content": "This is my first blog post!",
+    "status": "published"
+  }'
+
+# Get health status
+curl http://localhost:3000/api/health
+
+# View API documentation
+curl http://localhost:3000/api/docs
+```
+
+## Features Demonstrated
+
+This API server example showcases:
+
+1. **RESTful API Design**: Proper HTTP methods, status codes, and resource modeling
+2. **OpenAPI Documentation**: Auto-generated interactive API docs
+3. **Request Validation**: Comprehensive input validation with detailed error messages
+4. **Rate Limiting**: Prevent API abuse with configurable rate limits
+5. **Security Headers**: Protection against common web vulnerabilities
+6. **Database Migrations**: Version-controlled database schema changes
+7. **Health Monitoring**: Endpoint for checking system health and metrics
+8. **Request Logging**: Structured logging for monitoring and debugging
+9. **CORS Support**: Proper cross-origin request handling
+10. **Error Handling**: Consistent error responses throughout the API
+
+The result is a production-ready API server that can be deployed anywhere as a single executable!

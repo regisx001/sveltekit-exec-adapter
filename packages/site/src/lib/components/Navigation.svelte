@@ -11,7 +11,7 @@
 		{ name: 'Features', href: '#features' },
 		{ name: 'Use Cases', href: '#use-cases' },
 		{ name: 'Quick Start', href: '#quick-start' },
-		{ name: 'Docs', href: '/docs' }
+		{ name: 'Docs', href: base + '/docs' }
 	];
 </script>
 

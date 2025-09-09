@@ -3,42 +3,14 @@ layout: docs
 ---
 
 <script>
-	import { Badge } from '$lib/components/ui/badge/index.js';
-	import * as Card from '$lib/components/ui/card/index.js';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { Alert, AlertDescription } from '$lib/components/ui/alert/index.js';
-	import { 
-		Download, 
-		Package, 
-		Zap, 
-		Shield, 
-		Code, 
-		ArrowRight,
-		CheckCircle,
-		AlertCircle,
-		ExternalLink
-	} from '@lucide/svelte';
+	import { PACKAGE_VERSION } from '$lib/constants';
 </script>
 
 # SvelteKit Exec Adapter
 
-<div class="flex items-center gap-4 not-prose mb-8">
-	<Badge variant="secondary" class="text-sm">
-		<Package size={14} class="mr-1" aria-hidden="true" />
-		Experimental
-	</Badge>
-	<Badge variant="outline" class="text-sm">
-		<Code size={14} class="mr-1" aria-hidden="true" />
-		v0.3.3
-	</Badge>
-</div>
+**Experimental** | **v{PACKAGE_VERSION}**
 
-<Alert class="border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950 not-prose mb-8">
-	<AlertCircle class="h-4 w-4 text-orange-600 dark:text-orange-400" />
-	<AlertDescription class="text-orange-800 dark:text-orange-200">
-		<strong>Experimental Project:</strong> This adapter is currently under active development and testing. Use with caution in production environments.
-	</AlertDescription>
-</Alert>
+> ⚠️ **Experimental Project:** This adapter is currently under active development and testing. Use with caution in production environments.
 
 A SvelteKit adapter that builds your full-stack web application as a **single executable binary** with zero runtime dependencies.
 
@@ -46,95 +18,38 @@ Unlike static builds that strip away server capabilities, this adapter preserves
 
 ## Why Use This Adapter?
 
-<div class="grid gap-6 md:grid-cols-2 not-prose my-8">
-	<Card.Root class="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950">
-		<Card.Header>
-			<Card.Title class="text-red-800 dark:text-red-200 flex items-center gap-2">
-				<AlertCircle size={20} aria-hidden="true" />
-				Traditional Approaches Lose Functionality
-			</Card.Title>
-		</Card.Header>
-		<Card.Content class="text-red-700 dark:text-red-300 space-y-2">
-			<div>• SPA builds + Rust/Go → Lose SvelteKit's server features</div>
-			<div>• Desktop apps → Can't be deployed to the web</div>
-			<div>• Docker → Requires Docker installation and container management</div>
-		</Card.Content>
-	</Card.Root>
+### Traditional Approaches Lose Functionality
 
-	<Card.Root class="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950">
-		<Card.Header>
-			<Card.Title class="text-green-800 dark:text-green-200 flex items-center gap-2">
-				<CheckCircle size={20} aria-hidden="true" />
-				With SvelteKit Exec Adapter
-			</Card.Title>
-		</Card.Header>
-		<Card.Content class="text-green-700 dark:text-green-300 space-y-2">
-			<div>✅ Full SvelteKit capabilities preserved</div>
-			<div>✅ Single binary, no runtime dependencies</div>
-			<div>✅ Cross-platform executable</div>
-			<div>✅ Runs anywhere: locally or on cloud machines</div>
-		</Card.Content>
-	</Card.Root>
-</div>
+- SPA builds + Rust/Go → Lose SvelteKit's server features
+- Desktop apps → Can't be deployed to the web
+- Docker → Requires Docker installation and container management
+
+### With SvelteKit Exec Adapter
+
+- ✅ Full SvelteKit capabilities preserved
+- ✅ Single binary, no runtime dependencies
+- ✅ Cross-platform executable
+- ✅ Runs anywhere: locally or on cloud machines
 
 ## Perfect For
 
-<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3 not-prose my-8">
-	<Card.Root>
-		<Card.Header>
-			<Card.Title class="text-base flex items-center gap-2">
-				<Package size={16} class="text-primary" aria-hidden="true" />
-				Open-Source Tools
-			</Card.Title>
-		</Card.Header>
-		<Card.Content>
-			<Card.Description>
-				Users can run your tools without Docker/Node.js installation requirements.
-			</Card.Description>
-		</Card.Content>
-	</Card.Root>
+### Open-Source Tools
 
-	<Card.Root>
-		<Card.Header>
-			<Card.Title class="text-base flex items-center gap-2">
-				<Shield size={16} class="text-primary" aria-hidden="true" />
-				Commercial Software
-			</Card.Title>
-		</Card.Header>
-		<Card.Content>
-			<Card.Description>
-				Sell as one-time purchase for self-hosting with complete functionality.
-			</Card.Description>
-		</Card.Content>
-	</Card.Root>
+Users can run your tools without Docker/Node.js installation requirements.
 
-	<Card.Root>
-		<Card.Header>
-			<Card.Title class="text-base flex items-center gap-2">
-				<Code size={16} class="text-primary" aria-hidden="true" />
-				Privacy-Focused Apps
-			</Card.Title>
-		</Card.Header>
-		<Card.Content>
-			<Card.Description>
-				Prioritize local data ownership with offline-capable applications.
-			</Card.Description>
-		</Card.Content>
-	</Card.Root>
-</div>
+### Commercial Software
+
+Sell as one-time purchase for self-hosting with complete functionality.
+
+### Privacy-Focused Apps
+
+Prioritize local data ownership with offline-capable applications.
 
 **Example use cases:** AI chat applications, project management tools, content management systems, web analytics dashboards, development tools, and more.
 
 ## Quick Installation
 
-<div class="not-prose my-6">
-	<Alert>
-		<Download class="h-4 w-4" />
-		<AlertDescription>
-			<strong>Requirements:</strong> <a href="https://bun.sh" class="text-primary hover:underline" target="_blank" rel="noopener">Bun</a> is required as a build dependency to compile your SvelteKit application into an executable binary.
-		</AlertDescription>
-	</Alert>
-</div>
+> 📋 **Requirements:** [Bun](https://bun.sh) is required as a build dependency to compile your SvelteKit application into an executable binary.
 
 ```bash
 # Install the adapter
@@ -178,61 +93,23 @@ Your SvelteKit application is now a **single executable file** that can be distr
 
 ## Next Steps
 
-<div class="grid gap-4 md:grid-cols-2 not-prose my-8">
-	<Card.Root class="hover:shadow-md transition-shadow">
-		<Card.Header>
-			<Card.Title class="text-base">
-				<Zap size={16} class="inline mr-2 text-primary" aria-hidden="true" />
-				Quick Start Guide
-			</Card.Title>
-			<Card.Description>
-				Follow our step-by-step tutorial to build your first executable
-			</Card.Description>
-		</Card.Header>
-		<Card.Content>
-			<Button variant="outline" size="sm" class="w-full">
-				Get Started
-				<ArrowRight size={14} class="ml-2" aria-hidden="true" />
-			</Button>
-		</Card.Content>
-	</Card.Root>
+### Quick Start Guide
 
-	<Card.Root class="hover:shadow-md transition-shadow">
-		<Card.Header>
-			<Card.Title class="text-base">
-				<Code size={16} class="inline mr-2 text-primary" aria-hidden="true" />
-				Configuration Options
-			</Card.Title>
-			<Card.Description>
-				Learn about all available adapter options and customization
-			</Card.Description>
-		</Card.Header>
-		<Card.Content>
-			<Button variant="outline" size="sm" class="w-full">
-				View Configuration
-				<ArrowRight size={14} class="ml-2" aria-hidden="true" />
-			</Button>
-		</Card.Content>
-	</Card.Root>
-</div>
+Follow our step-by-step tutorial to build your first executable
+
+### Configuration Options
+
+Learn about all available adapter options and customization
 
 ## Features Overview
 
 - **🚀 Zero Dependencies**: Single binary with no runtime requirements
 - **⚡ Full SvelteKit Support**: SSR, API routes, middleware, and more
-- **🔒 Privacy First**: Local data ownership and offline capabilities  
+- **🔒 Privacy First**: Local data ownership and offline capabilities
 - **📦 Cross-Platform**: Works on Linux, macOS, and Windows
 - **🛠️ Easy Distribution**: Share or sell as a single file
 - **🎯 Production Ready**: Built on proven Bun runtime technology
 
-<div class="not-prose mt-12 pt-8 border-t border-border">
-	<div class="flex items-center justify-between">
-		<p class="text-muted-foreground text-sm">
-			Need help? Check out our examples or join the community.
-		</p>
-		<Button variant="ghost" size="sm">
-			<ExternalLink size={14} class="mr-2" aria-hidden="true" />
-			GitHub Issues
-		</Button>
-	</div>
-</div>
+---
+
+Need help? Check out our examples or join the community on [GitHub Issues](https://github.com/regisx001/sveltekit-exec-adapter/issues).

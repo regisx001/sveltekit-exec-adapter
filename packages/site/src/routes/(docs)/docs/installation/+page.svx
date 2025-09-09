@@ -1,0 +1,119 @@
+---
+layout: docs
+---
+
+# Installation
+
+Get started with the SvelteKit Exec Adapter by following these simple installation steps.
+
+## Prerequisites
+
+Before installing the adapter, ensure you have:
+
+- **Node.js 18+** - For building your SvelteKit application
+- **Bun** - Required as a build dependency for compiling to executable binary
+- **SvelteKit project** - An existing SvelteKit application
+
+## Install Bun
+
+The adapter requires [Bun](https://bun.sh) as a build dependency to compile your application into an executable binary.
+
+### Linux & macOS
+
+```bash
+curl -fsSL https://bun.sh/install | bash
+```
+
+### Windows
+
+```powershell
+powershell -c "irm bun.sh/install.ps1 | iex"
+```
+
+### Verify Installation
+
+```bash
+bun --version
+```
+
+## Install the Adapter
+
+Install the SvelteKit Exec Adapter in your project:
+
+```bash
+npm install sveltekit-exec-adapter
+```
+
+### Alternative Package Managers
+
+```bash
+# Using yarn
+yarn add sveltekit-exec-adapter
+
+# Using pnpm
+pnpm add sveltekit-exec-adapter
+
+# Using bun
+bun add sveltekit-exec-adapter
+```
+
+## Configure the Adapter
+
+Update your `svelte.config.js` to use the adapter:
+
+```javascript
+import adapter from 'sveltekit-exec-adapter';
+
+const config = {
+	kit: {
+		adapter: adapter()
+	}
+};
+
+export default config;
+```
+
+## Verify Setup
+
+Test that everything is working by building your application:
+
+```bash
+npm run build
+```
+
+If successful, you should see:
+
+- Build output in the `build/` directory
+- An executable binary file (e.g., `my-app` on Linux/macOS or `my-app.exe` on Windows)
+
+## Next Steps
+
+Now that you have the adapter installed and configured:
+
+1. **[Quick Start](/docs/quick-start)** - Build your first executable
+2. **[Configuration](/docs/configuration)** - Customize adapter options
+3. **[Examples](/docs/examples/basic)** - See practical implementations
+
+## Troubleshooting
+
+### Common Issues
+
+**Bun not found during build:**
+
+```bash
+# Ensure Bun is in your PATH
+echo $PATH
+which bun
+```
+
+**Permission denied on executable:**
+
+```bash
+# Make the binary executable
+chmod +x build/my-app
+```
+
+**Large binary size:**
+
+- See [Configuration](/docs/configuration) for asset optimization options
+- Review the [Build Process](/docs/build-process) for size optimization tips
