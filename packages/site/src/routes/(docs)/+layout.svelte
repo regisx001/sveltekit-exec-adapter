@@ -15,6 +15,7 @@
 		Github
 	} from '@lucide/svelte';
 	import { PACKAGE_VERSION } from '$lib/constants';
+	import { base } from '$app/paths';
 
 	let { children } = $props();
 
@@ -22,25 +23,25 @@
 		{
 			title: 'Getting Started',
 			items: [
-				{ name: 'Introduction', href: '/docs', icon: Book },
-				{ name: 'Installation', href: '/docs/installation', icon: Download },
-				{ name: 'Quick Start', href: '/docs/quick-start', icon: Zap }
+				{ name: 'Introduction', href: base + '/docs', icon: Book },
+				{ name: 'Installation', href: base + '/docs/installation', icon: Download },
+				{ name: 'Quick Start', href: base + '/docs/quick-start', icon: Zap }
 			]
 		},
 		{
 			title: 'Configuration',
 			items: [
-				{ name: 'Adapter Options', href: '/docs/configuration', icon: Settings },
-				{ name: 'Build Process', href: '/docs/build-process', icon: Package },
-				{ name: 'Advanced Setup', href: '/docs/advanced', icon: Code }
+				{ name: 'Adapter Options', href: base + '/docs/configuration', icon: Settings },
+				{ name: 'Build Process', href: base + '/docs/build-process', icon: Package },
+				{ name: 'Advanced Setup', href: base + '/docs/advanced', icon: Code }
 			]
 		},
 		{
 			title: 'Examples',
 			items: [
-				{ name: 'Basic App', href: '/docs/examples/basic', icon: FileText },
-				{ name: 'Full-Stack App', href: '/docs/examples/full-stack', icon: Code },
-				{ name: 'API Server', href: '/docs/examples/api-server', icon: Settings }
+				{ name: 'Basic App', href: base + '/docs/examples/basic', icon: FileText },
+				{ name: 'Full-Stack App', href: base + '/docs/examples/full-stack', icon: Code },
+				{ name: 'API Server', href: base + '/docs/examples/api-server', icon: Settings }
 			]
 		}
 	];
