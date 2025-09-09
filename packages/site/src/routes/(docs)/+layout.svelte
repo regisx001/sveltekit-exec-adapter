@@ -14,7 +14,7 @@
 		Download,
 		Github
 	} from '@lucide/svelte';
-	import { PACKAGE_VERSION } from '$lib/constants';
+	import { GITHUB_URL, PACKAGE_VERSION } from '$lib/constants';
 	import { base } from '$app/paths';
 
 	let { children } = $props();
@@ -104,7 +104,13 @@
 
 				<!-- Footer -->
 				<div class="border-border border-t p-4">
-					<Button variant="outline" size="sm" class="w-full justify-start">
+					<Button
+						href={GITHUB_URL}
+						target="_blank"
+						variant="outline"
+						size="sm"
+						class="w-full justify-start"
+					>
 						<Github size={16} class="mr-2" aria-hidden="true" />
 						View on GitHub
 					</Button>

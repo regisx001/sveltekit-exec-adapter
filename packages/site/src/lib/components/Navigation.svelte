@@ -4,6 +4,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import favicon from '$lib/assets/favicon.png';
 	import { base } from '$app/paths';
+	import { GITHUB_URL, PACKAGE_VERSION } from '$lib/constants';
 
 	let mobileMenuOpen = $state(false);
 
@@ -27,7 +28,7 @@
 					<span class="text-primary">SvelteKit</span>
 					<span class="text-foreground">Exec</span>
 				</div>
-				<Badge variant="outline" class="hidden text-xs sm:inline-flex">v0.3.3</Badge>
+				<Badge variant="outline" class="hidden text-xs sm:inline-flex">v{PACKAGE_VERSION}</Badge>
 			</div>
 
 			<!-- Desktop Navigation -->
@@ -44,11 +45,17 @@
 
 			<!-- Actions -->
 			<div class="flex items-center space-x-3">
-				<Button variant="ghost" size="sm" class="hidden sm:inline-flex">
+				<Button
+					href={GITHUB_URL}
+					target="_blank"
+					variant="ghost"
+					size="sm"
+					class="hidden sm:inline-flex"
+				>
 					<Github class="mr-2 h-4 w-4" />
 					GitHub
 				</Button>
-				<Button size="sm" class="hidden sm:inline-flex">
+				<Button size="sm" href={base + '/docs/quick-start/'} class="hidden sm:inline-flex">
 					Get Started
 					<ExternalLink class="ml-1 h-3 w-3" />
 				</Button>
@@ -83,11 +90,17 @@
 						</a>
 					{/each}
 					<div class="border-border space-y-2 border-t pt-3">
-						<Button variant="ghost" size="sm" class="w-full justify-start">
+						<Button
+							href={GITHUB_URL}
+							target="_blank"
+							variant="ghost"
+							size="sm"
+							class="hidden sm:inline-flex"
+						>
 							<Github class="mr-2 h-4 w-4" />
 							GitHub
 						</Button>
-						<Button size="sm" class="w-full">
+						<Button href={base + '/docs/quick-start/'} size="sm" class="w-full">
 							Get Started
 							<ExternalLink class="ml-1 h-3 w-3" />
 						</Button>
