@@ -81,7 +81,7 @@ const adapter = (options?: AdapterOptions): Adapter => {
       // Step 3: Copy the server wrapper
       reporter.startStep("server");
       const path = join(import.meta.dirname, "server");
-      builder.copy(path, join(SVELTEKIT_DIR, "temp-server"));
+      builder.copy(path, join(SVELTEKIT_DIR, "adapter-runtime"));
       reporter.completeStep("server");
 
       // Step 4: Generate manifest file with IIFE wrapper
@@ -186,7 +186,7 @@ const adapter = (options?: AdapterOptions): Adapter => {
 
         const assetImports = generateAssetImports(clientAssets);
         await writeFile(
-          join(SVELTEKIT_DIR, "temp-server", "assets.generated.ts"),
+          join(SVELTEKIT_DIR, "adapter-runtime", "assets.generated.ts"),
           assetImports
         );
 
@@ -208,7 +208,7 @@ const adapter = (options?: AdapterOptions): Adapter => {
           join(adapterOptions.out, "prerendered")
         );
         await writeFile(
-          join(SVELTEKIT_DIR, "temp-server", "assets.generated.ts"),
+          join(SVELTEKIT_DIR, "adapter-runtime", "assets.generated.ts"),
           "export const assetMap = new Map([]);"
         );
         reporter.completeStep("assets", "External assets copied");

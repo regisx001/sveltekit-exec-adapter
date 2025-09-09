@@ -58,7 +58,7 @@ export async function compileApplication(
     "--minify",
     "--sourcemap=none",
     ...(options.target ? [`--target=${TARGETS_MAP[options.target]}`] : []),
-    join(SVELTEKIT_DIR, "temp-server/index.ts"),
+    join(SVELTEKIT_DIR, "adapter-runtime/index.ts"),
     "--outfile",
     join(options.out, options.binaryName),
   ].join(" ");
