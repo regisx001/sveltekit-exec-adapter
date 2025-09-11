@@ -223,9 +223,7 @@ const adapter = (options?: AdapterOptions): Adapter => {
         target: adapterOptions.target,
         out: adapterOptions.out,
         binaryName: adapterOptions.binaryName,
-        windows: {
-          hideConsole: adapterOptions.windows?.hideConsole ?? false,
-        },
+        windows: adapterOptions.windows,
       });
       reporter.completeStep("compile", `${sizeInMb}MB binary`);
 
