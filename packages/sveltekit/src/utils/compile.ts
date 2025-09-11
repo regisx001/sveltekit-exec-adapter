@@ -12,7 +12,15 @@ import { SVELTEKIT_DIR, TARGETS_MAP } from "../constants/const";
 
 export async function compileApplication(
   builder: Builder,
-  options: { target?: Target; out: string; binaryName: string }
+
+  options: {
+    target?: Target;
+    out: string;
+    binaryName: string;
+    windows: {
+      hideConsole: boolean | undefined;
+    };
+  }
 ) {
   try {
     const bunVersion = execSync("bun --version", {
@@ -52,6 +60,12 @@ export async function compileApplication(
     );
     process.exit(1);
   }
+
+  const windowsArgs =
+    options.windows.hideConsole && process.platform === "win32"
+      ? ["--windows-hide-console"]
+      : [];
+
   const compileArgs = [
     "build",
     "--compile",
@@ -61,6 +75,7 @@ export async function compileApplication(
     join(SVELTEKIT_DIR, "adapter-runtime/index.ts"),
     "--outfile",
     join(options.out, options.binaryName),
+    ...windowsArgs,
   ].join(" ");
   execSync(`bun ${compileArgs}`, { stdio: "inherit" });
 

@@ -35,4 +35,37 @@ export declare type AdapterOptions = {
     /** Skip validation entirely (not recommended) */
     skip?: boolean;
   };
+
+  /**
+   * Windows-specific metadata used when packaging/building for Windows.
+   * These fields are typically embedded in the executable/installer and used by
+   * installers, the OS, and code-signing tools.
+   */
+  windows?: {
+    meta?: {
+      /** Application display title shown in installer UI and window title bars (e.g. "My App") */
+      title?: string;
+      /** Publisher/author name used in installer metadata and store listings (e.g. "Acme, Inc.") */
+      publisher?: string;
+      /** Application version (prefer semver format, e.g. "1.2.3") used in the executable/installer metadata */
+      version?: string;
+      /** Short description of the application used in installer UI or package metadata */
+      description?: string;
+      /** Copyright notice included in the executable metadata (e.g. "© 2025 Acme, Inc. All rights reserved.") */
+      copyright?: string;
+    };
+    /**
+     * When true, builds the executable as a GUI application and hides the console window.
+     * When false (default), the app is a console application and a console window is shown.
+     * Use true for GUI apps that should not display a terminal window to the user.
+     */
+    hideConsole?: boolean;
+    /**
+     * Path to the icon file to embed in the Windows executable.
+     * Prefer .ico files containing multiple sizes (e.g. 16x16, 32x32, 48x48, 256x256).
+     * If using other formats, they may be converted during packaging; providing a proper
+     * .ico is recommended for best results in Windows shell and installer UI.
+     */
+    iconPath?: string;
+  };
 };

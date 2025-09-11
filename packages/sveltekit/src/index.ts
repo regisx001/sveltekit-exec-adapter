@@ -53,6 +53,9 @@ const adapter = (options?: AdapterOptions): Adapter => {
         out: "dist",
         embedStatic: true,
         binaryName: "app",
+        windows: {
+          hideConsole: false,
+        },
         ...options,
       };
 
@@ -216,10 +219,14 @@ const adapter = (options?: AdapterOptions): Adapter => {
 
       // Step 6: Compile the app
       reporter.startStep("compile");
-      const { binaryPath, sizeInMb } = await compileApplication(
-        builder,
-        adapterOptions
-      );
+      const { binaryPath, sizeInMb } = await compileApplication(builder, {
+        target: adapterOptions.target,
+        out: adapterOptions.out,
+        binaryName: adapterOptions.binaryName,
+        windows: {
+          hideConsole: adapterOptions.windows?.hideConsole ?? false,
+        },
+      });
       reporter.completeStep("compile", `${sizeInMb}MB binary`);
 
       // Step 7: Generate Dockerfile
