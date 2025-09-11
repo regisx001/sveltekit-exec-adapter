@@ -61,6 +61,7 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           cd test
+          bun run Testing/Windows/test-metadata.js ./dist/test-example
           Start-Process -FilePath "dist\test-example.exe" -PassThru
           Start-Sleep -Seconds 5
           try {
