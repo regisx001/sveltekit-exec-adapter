@@ -20,7 +20,8 @@ const config = {
 			out: 'build',
 			binaryName: 'my-app',
 			embedStatic: true,
-			target: 'linux-x64'
+			target: 'linux-x64',
+			openBrowser: true
 		})
 	}
 };
@@ -100,6 +101,26 @@ adapter({
 });
 ```
 
+#### `openBrowser`
+
+- **Type:** `boolean`
+- **Default:** `false`
+- **Description:** Automatically open the default browser when the server starts
+
+```javascript
+adapter({
+	openBrowser: true // Opens http://localhost:3000 automatically
+});
+```
+
+**Cross-platform support:**
+
+- **Linux:** Uses `xdg-open`
+- **macOS:** Uses `open`
+- **Windows:** Uses `start`
+
+**Note:** If the browser command fails, the server will continue running normally and display a message asking you to open the browser manually.
+
 ### Asset Validation Options
 
 Control how the adapter handles and validates assets during build:
@@ -160,6 +181,7 @@ const config = {
 			embedStatic: true,
 			target: 'linux-x64',
 			volume: '/app/data',
+			openBrowser: true,
 
 			// Asset validation
 			validation: {
@@ -210,6 +232,7 @@ const isDev = process.env.NODE_ENV === 'development';
 
 adapter({
 	binaryName: isDev ? 'my-app-dev' : 'my-app',
+	openBrowser: isDev, // Auto-open browser in development
 	validation: {
 		skip: isDev // Skip validation in development
 	}
@@ -221,6 +244,7 @@ adapter({
 ```javascript
 adapter({
 	embedStatic: true,
+	openBrowser: false, // Don't auto-open in production
 	validation: {
 		maxAssetSize: 25 * 1024 * 1024, // Stricter limits for production
 		maxTotalSize: 200 * 1024 * 1024,
@@ -318,3 +342,19 @@ adapter({
 	target: process.env.TARGET || 'linux-x64' // Set via environment
 });
 ```
+
+**Browser not opening automatically:**
+
+```javascript
+adapter({
+	openBrowser: true // Enable auto-open
+});
+```
+
+If the browser still doesn't open:
+
+- Check that you have a default browser set
+- On Linux: Ensure `xdg-open` is available
+- On macOS: Ensure `open` command works
+- On Windows: Check that `start` command is available
+- The server will display a manual URL if auto-open fails

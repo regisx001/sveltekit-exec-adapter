@@ -95,6 +95,24 @@ const adapter = (options?: AdapterOptions): Adapter => {
       );
       reporter.completeStep("manifest");
 
+      // Step 4.5: Generate adapter configuration
+      reporter.startStep("config");
+      const adapterConfig = {
+        openBrowser: adapterOptions.openBrowser ?? false,
+        // Add other runtime configuration options here as needed
+      };
+      const configModule = `export const adapterConfig = ${JSON.stringify(
+        adapterConfig,
+        null,
+        2
+      )};`;
+      await writeFile(
+        join(SVELTEKIT_DIR, "adapter-runtime", "config.generated.ts"),
+        configModule,
+        "utf-8"
+      );
+      reporter.completeStep("config");
+
       // Step 5: Generate assets imports
       reporter.startStep("assets");
       let assetCount = 0;

@@ -18,6 +18,8 @@ export declare type AdapterOptions = {
   target?: Target;
   /** Volume mount point for the binary (default no volume mount). Can be used for persistent storage, usually /data. */
   volume?: string;
+  /** Whether to automatically open the browser when the server starts (default: false) */
+  openBrowser?: boolean;
   /** Asset validation options */
   validation?: {
     /** Maximum individual asset size in bytes (default: 50MB) */

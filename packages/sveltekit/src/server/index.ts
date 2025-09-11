@@ -2,6 +2,7 @@
 import { file } from "bun";
 import path from "node:path";
 import { execPath } from "process";
+import { $ } from "bun";
 
 // Colors for terminal output
 const colors = {
@@ -14,6 +15,8 @@ const colors = {
 
 // @ts-ignore
 import { assetMap } from "./assets.generated.ts";
+// @ts-ignore
+import { adapterConfig } from "./config.generated.ts";
 
 // Types
 import type { Server as ServerType } from "@sveltejs/kit";
@@ -135,3 +138,23 @@ const server = Bun.serve({
 console.log(
   `${colors.green}${colors.bright}[SERVER]${colors.reset} ${colors.cyan}Listening on ${colors.bright}http://localhost:${server.port}${colors.reset}`
 );
+
+// Auto-open browser if enabled in adapter configuration
+if (adapterConfig.openBrowser) {
+  try {
+    if (process.platform === "win32") {
+      await $`start http://localhost:${server.port}`;
+    } else if (process.platform === "darwin") {
+      await $`open http://localhost:${server.port}`;
+    } else {
+      await $`xdg-open http://localhost:${server.port}`;
+    }
+    console.log(
+      `${colors.blue}${colors.bright}[BROWSER]${colors.reset} ${colors.cyan}Opening ${colors.bright}http://localhost:${server.port}${colors.reset} in default browser`
+    );
+  } catch (error) {
+    console.log(
+      `${colors.blue}${colors.bright}[BROWSER]${colors.reset} ${colors.cyan}Could not auto-open browser. Please visit ${colors.bright}http://localhost:${server.port}${colors.reset} manually`
+    );
+  }
+}
