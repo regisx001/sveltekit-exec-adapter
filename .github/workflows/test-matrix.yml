@@ -72,3 +72,42 @@ jobs:
             Get-Process | Where-Object {$_.ProcessName -like "*test-example*"} | Stop-Process -Force
           }
         shell: powershell
+
+      - name:  Upload artifact (Linux)
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-example-linux-x64
+          path: test/dist/test-example
+          retention-days: 30
+
+      - name: Upload artifact (macOS)
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-example-macos-${{ runner.arch }}
+          path: test/dist/test-example
+          retention-days: 30
+
+      - name: Upload artifact (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-example-windows-x64
+          path: test/dist/test-example.exe
+          retention-days: 30
+
+      - name: Display build information
+        run: |
+          echo "Build Summary"
+          echo "=============="
+          echo "Platform: ${{ runner.os }}"
+          echo "Architecture: ${{ runner.arch }}"
+          if [ "${{ runner.os }}" == "Linux" ]; then
+            ls -lh test/dist/test-example
+          elif [ "${{ runner.os }}" == "macOS" ]; then
+            ls -lh test/dist/test-example
+          else
+            dir test\dist\test-example.exe
+          fi
+        shell: bash
