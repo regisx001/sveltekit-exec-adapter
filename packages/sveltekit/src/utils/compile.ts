@@ -5,14 +5,19 @@ import { stat } from "fs/promises";
 
 // Types
 import type { Builder } from "@sveltejs/kit";
-import type { Target } from "../types/AdapterOptions";
+import type { Target, AdapterOptions } from "../types/AdapterOptions";
 
 // Constants
 import { SVELTEKIT_DIR, TARGETS_MAP } from "../constants/const";
 
 export async function compileApplication(
   builder: Builder,
-  options: { target?: Target; out: string; binaryName: string }
+  options: {
+    target?: Target;
+    out: string;
+    binaryName: string;
+    windows?: AdapterOptions["windows"];
+  }
 ) {
   try {
     const bunVersion = execSync("bun --version", {
@@ -52,6 +57,57 @@ export async function compileApplication(
     );
     process.exit(1);
   }
+
+  // Process Windows-specific compilation arguments
+  const windowsArgs: string[] = [];
+
+  if (process.platform === "win32" && options.windows) {
+    builder.log.info("🪟 Applying Windows-specific configuration...");
+
+    // Hide console window for GUI applications
+    if (options.windows.hideConsole) {
+      windowsArgs.push("--windows-hide-console");
+      builder.log.info("   • Hiding console window for GUI application");
+    }
+
+    // Add metadata if provided
+    if (options.windows.meta) {
+      const meta = options.windows.meta;
+      builder.log.info("   • Adding executable metadata:");
+
+      if (meta.title) {
+        windowsArgs.push(`--windows-title="${meta.title}"`);
+        builder.log.info(`     - Title: ${meta.title}`);
+      }
+
+      if (meta.publisher) {
+        windowsArgs.push(`--windows-publisher="${meta.publisher}"`);
+        builder.log.info(`     - Publisher: ${meta.publisher}`);
+      }
+
+      if (meta.version) {
+        windowsArgs.push(`--windows-version="${meta.version}"`);
+        builder.log.info(`     - Version: ${meta.version}`);
+      }
+
+      if (meta.description) {
+        windowsArgs.push(`--windows-description="${meta.description}"`);
+        builder.log.info(`     - Description: ${meta.description}`);
+      }
+
+      if (meta.copyright) {
+        windowsArgs.push(`--windows-copyright="${meta.copyright}"`);
+        builder.log.info(`     - Copyright: ${meta.copyright}`);
+      }
+    }
+
+    // Add icon if provided
+    if (options.windows.iconPath) {
+      windowsArgs.push(`--windows-icon="${options.windows.iconPath}"`);
+      builder.log.info(`   • Adding custom icon: ${options.windows.iconPath}`);
+    }
+  }
+
   const compileArgs = [
     "build",
     "--compile",
@@ -61,6 +117,7 @@ export async function compileApplication(
     join(SVELTEKIT_DIR, "adapter-runtime/index.ts"),
     "--outfile",
     join(options.out, options.binaryName),
+    ...windowsArgs,
   ].join(" ");
   execSync(`bun ${compileArgs}`, { stdio: "inherit" });
 
