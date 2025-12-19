@@ -13,12 +13,6 @@ const colors = {
   magenta: "\x1b[35m",
   cyan: "\x1b[36m",
   white: "\x1b[37m",
-  bgRed: "\x1b[41m",
-  bgGreen: "\x1b[42m",
-  bgYellow: "\x1b[43m",
-  bgBlue: "\x1b[44m",
-  bgMagenta: "\x1b[45m",
-  bgCyan: "\x1b[46m",
 };
 
 interface BuildMetrics {
@@ -177,19 +171,6 @@ export class BuildReporter {
     return `${Math.floor(ms / 60000)}m ${((ms % 60000) / 1000).toFixed(1)}s`;
   }
 
-  private formatSize(bytes: number): string {
-    const units = ["B", "KB", "MB", "GB"];
-    let size = bytes;
-    let unitIndex = 0;
-
-    while (size >= 1024 && unitIndex < units.length - 1) {
-      size /= 1024;
-      unitIndex++;
-    }
-
-    return `${size.toFixed(1)} ${units[unitIndex]}`;
-  }
-
   private logBuildInfo(): void {
     this.builder.log.info(
       `${colors.blue}${colors.bright}[INFO]${colors.reset} ${colors.blue}Build Configuration:${colors.reset}`
@@ -260,75 +241,5 @@ export class BuildReporter {
       }
     }
     this.builder.log.info("");
-  }
-
-  // Utility methods for asset analysis
-  analyzeAssets(
-    clientDir: string,
-    prerenderedDir: string
-  ): Promise<{ count: number; totalSize: number }> {
-    // This would be implemented to analyze asset sizes
-    // For now, return a placeholder
-    return Promise.resolve({ count: 0, totalSize: 0 });
-  }
-
-  warnLargeAssets(assets: Array<{ path: string; size: number }>): void {
-    const largeAssets = assets.filter((asset) => asset.size > 1024 * 1024); // > 1MB
-
-    if (largeAssets.length > 0) {
-      this.builder.log.warn("");
-      this.builder.log.warn(
-        `${colors.yellow}${colors.bright}[WARNING]${colors.reset} ${colors.yellow}Large assets detected:${colors.reset}`
-      );
-      for (const asset of largeAssets) {
-        this.builder.log.warn(
-          `   ${colors.dim}•${colors.reset} ${colors.yellow}${asset.path}:${
-            colors.reset
-          } ${colors.bright}${this.formatSize(asset.size)}${colors.reset}`
-        );
-      }
-      this.builder.log.warn(
-        `   ${colors.dim}Consider excluding large assets from binary embedding.${colors.reset}`
-      );
-      this.builder.log.warn("");
-    }
-  }
-
-  suggestOptimizations(stats: BuildStats): void {
-    const suggestions: string[] = [];
-
-    // Binary size suggestions
-    const binarySizeMB = parseFloat(stats.binarySize);
-    if (binarySizeMB > 50) {
-      suggestions.push("Consider disabling static embedding for large assets");
-    }
-
-    // Asset count suggestions
-    if (stats.assetCount > 1000) {
-      suggestions.push(
-        "Large number of assets detected - consider asset bundling"
-      );
-    }
-
-    // Build time suggestions
-    if (stats.totalBuildTime > 60000) {
-      // > 1 minute
-      suggestions.push(
-        "Long build time - consider enabling incremental builds"
-      );
-    }
-
-    if (suggestions.length > 0) {
-      this.builder.log.info("");
-      this.builder.log.info(
-        `${colors.cyan}${colors.bright}[SUGGESTIONS]${colors.reset} ${colors.cyan}Optimization Suggestions:${colors.reset}`
-      );
-      for (const suggestion of suggestions) {
-        this.builder.log.info(
-          `   ${colors.dim}•${colors.reset} ${colors.white}${suggestion}${colors.reset}`
-        );
-      }
-      this.builder.log.info("");
-    }
   }
 }
