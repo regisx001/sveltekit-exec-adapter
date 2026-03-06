@@ -60,28 +60,6 @@ curl -fsSL https://bun.sh/install | bash
 bun --version
 ```
 
-#### For Windows:
-
-1. Bun officially supports Windows, and the recommended way to install it is via PowerShell.
-2. Open PowerShell as an administrator.
-3. Execute the following command:
-
-```powershell
-powershell -c "irm bun.sh/install.ps1|iex"
-```
-
-4. Alternatively, you can use scoop if you have it installed:
-
-```powershell
-scoop install bun
-```
-
-5. Verify the installation by checking the Bun version:
-
-```bash
-bun --version
-```
-
 > **Note**: For specific version installations, refer to the [official Bun documentation](https://bun.sh/docs/installation) as the commands may vary slightly depending on the desired version.
 
 ## Usage
