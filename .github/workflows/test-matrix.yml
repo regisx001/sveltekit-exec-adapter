@@ -21,33 +21,32 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest]
 
     steps:
-      - name: 📥 Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 🛠️ Install Bun
+      - name: Install Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
-      - name: 🏗️ Build adapter package
+      - name: Build adapter package
         run: |
           cd packages/sveltekit
           bun install
           bun run build
           bun link
 
-      - name: 🏗️ Build test project
+      - name: Build test project
         run: |
           cd test
           bun install
           bun run build
           bun link sveltekit-exec-adapter
 
-      - name: 🧪 Test executable (Unix)
-        if: runner.os != 'Windows'
+      - name: Test executable
         run: |
           cd test
           chmod +x dist/test-example
@@ -57,23 +56,7 @@ jobs:
           pkill -f test-example
         shell: bash
 
-      - name: 🧪 Test executable (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          cd test
-          Start-Process -FilePath "dist\test-example.exe" -PassThru
-          Start-Sleep -Seconds 5
-          try {
-            Invoke-WebRequest -Uri "http://localhost:3000" -UseBasicParsing
-          } catch {
-            Write-Error "Failed to connect to executable"
-            exit 1
-          } finally {
-            Get-Process | Where-Object {$_.ProcessName -like "*test-example*"} | Stop-Process -Force
-          }
-        shell: powershell
-
-      - name:  Upload artifact (Linux)
+      - name: Upload artifact (Linux)
         if: runner.os == 'Linux'
         uses: actions/upload-artifact@v4
         with:
@@ -89,25 +72,11 @@ jobs:
           path: test/dist/test-example
           retention-days: 30
 
-      - name: Upload artifact (Windows)
-        if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-example-windows-x64
-          path: test/dist/test-example.exe
-          retention-days: 30
-
       - name: Display build information
         run: |
           echo "Build Summary"
           echo "=============="
           echo "Platform: ${{ runner.os }}"
           echo "Architecture: ${{ runner.arch }}"
-          if [ "${{ runner.os }}" == "Linux" ]; then
-            ls -lh test/dist/test-example
-          elif [ "${{ runner.os }}" == "macOS" ]; then
-            ls -lh test/dist/test-example
-          else
-            dir test\dist\test-example.exe
-          fi
+          ls -lh test/dist/test-example
         shell: bash

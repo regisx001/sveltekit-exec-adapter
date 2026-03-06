@@ -9,7 +9,6 @@ export const TARGETS_MAP: Record<
 > = {
   "linux-x64": "bun-linux-x64",
   "macos-arm64": "bun-macos-arm64",
-  "windows-x64": "bun-windows-x64",
   "darwin-x64": "bun-darwin-x64",
   "darwin-arm64": "bun-darwin-arm64",
   "linux-x64-musl": "bun-linux-x64-musl",
